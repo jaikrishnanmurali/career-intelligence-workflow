@@ -1,93 +1,82 @@
-# Run the scanner every 12 hours
+# Run the digest every 12 hours
 
-GitHub Actions runs in GitHub's managed environment, so the user's computer can be off. The schedule belongs in a private deployment because state and reports reveal job-search behavior.
+GitHub Actions runs while the user's computer is off. The workflow belongs in the user's private Career Ops repository because it reads the private extension profile and commits recommendation state.
 
-## Before enabling a schedule
+## Before enabling it
 
-Complete these checks locally:
+From `career-ops/extensions/career-intelligence-workflow`:
 
 ```bash
-npm install
-npm run init
-npm run doctor -- --email
+npm run doctor -- --email --career-ops-root ../..
 npm test
 npm run smoke
 ```
 
-Then configure the three repository secrets described in [RESEND.md](RESEND.md).
+The smoke run must say that no email was sent.
 
-## Install the recurring workflow
+## Install the workflow
 
-Copy:
-
-```text
-examples/deep-job-scan.scheduled.yml
-```
-
-to:
-
-```text
-.github/workflows/deep-job-scan.yml
-```
-
-Because `config/profile.yml` is ignored for safety, add it deliberately only in the private deployment:
+After confirming the Career Ops repository is private:
 
 ```bash
-git add .github/workflows/deep-job-scan.yml
-git add -f config/profile.yml
-git commit -m "Configure private career scan"
+npm run workflow:install -- --root ../..
+```
+
+This creates:
+
+```text
+career-ops/.github/workflows/career-intelligence.yml
+```
+
+The installer refuses to overwrite an existing workflow.
+
+Add the private extension profile and generated lockfile deliberately:
+
+```bash
+cd ../..
+git add .github/workflows/career-intelligence.yml
+git add extensions/career-intelligence-workflow/package-lock.json
+git add -f extensions/career-intelligence-workflow/config/profile.yml
+git commit -m "Configure private Career Intelligence digest"
 git push
 ```
 
-Before committing, confirm the repository visibility says **Private** on GitHub.
+Never add the extension `.env` file.
+
+## Add GitHub secrets
+
+In the private Career Ops repository, add these Actions secrets:
+
+```text
+RESEND_API_KEY
+CAREER_DIGEST_FROM
+CAREER_DIGEST_TO
+```
+
+See [RESEND.md](RESEND.md) for the no-domain personal setup and the optional verified-domain setup.
 
 ## What the workflow does
 
-1. Checks out the private repository.
-2. Installs the locked npm dependencies with `npm ci`.
-3. Validates that a real deployment profile exists.
-4. Runs the tests.
-5. Performs a full scan and sends a Resend digest.
-6. Commits the updated private state and latest report when they changed.
+1. Checks out the private Career Ops repository.
+2. Installs the extension's locked dependencies.
+3. Verifies the Career Ops foundation and confirmed extension profile.
+4. Runs the extension tests.
+5. Performs the scan and sends the digest.
+6. Commits only the extension's saved state and latest report when changed.
 
-The state commit lets an untimestamped vacancy appear once as newly discovered instead of being emailed repeatedly.
-
-## Schedule
-
-The example runs at minute 23, twice per day, in `Europe/Stockholm`:
-
-```yaml
-on:
-  schedule:
-    - cron: "23 7,19 * * *"
-      timezone: "Europe/Stockholm"
-```
-
-GitHub Actions supports IANA timezones for scheduled workflows. Scheduled runs use the latest commit on the default branch and can be delayed during high load; avoiding minute `0` reduces that risk. GitHub's workflow syntax is documented at <https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onschedule>.
-
-Change the two hours or timezone in your private copy when needed. The interval between `7` and `19` is 12 hours.
+The example runs at minute 23 twice per day in `UTC`. Change the workflow timezone and hours to the user's confirmed schedule. Scheduled workflows can be delayed, so this is a twice-daily delivery target rather than a real-time guarantee.
 
 ## Test before relying on it
 
-1. Open the private repository's **Actions** tab.
-2. Select **Scheduled career-intelligence scan**.
-3. Choose **Run workflow**.
-4. Confirm all steps pass.
-5. Confirm one email arrives and its freshness labels are clear.
-6. Confirm the workflow committed `state/state.json` and `reports/latest.json` only to the private repository.
+1. Open the private repository's Actions tab.
+2. Select **Scheduled Career Intelligence digest**.
+3. Run it manually.
+4. Confirm every step passes.
+5. Inspect the email's freshness labels and recommendation reasons.
+6. Confirm the commit changed only extension state and report files.
 
-Do not enable the schedule until this manual run succeeds.
+Keep the recurring schedule only after this manual run succeeds.
 
-## Cost and limits
+## Disable it
 
-The scanner makes no model API calls. GitHub Actions and Resend may have account-specific free-tier limits that can change, so review their current dashboards before increasing frequency or source budgets.
-
-The workflow bounds runtime, ATS boards, and live-page verification. Increasing those values makes a scan deeper but also increases requests and execution time. Respect source terms and rate limits.
-
-## If a run is missed
-
-GitHub schedules are not real-time guarantees. A delayed or dropped run does not mean the scanner has failed permanently. Run the workflow manually; saved state will still prevent repeated untimestamped recommendations.
-
-## Disable automation
-
-Disable the workflow from the Actions tab or remove `.github/workflows/deep-job-scan.yml` from the private deployment. Removing the public example under `examples/` has no effect because GitHub only executes workflow files under `.github/workflows/`.
+Disable the workflow in the Actions tab or remove `.github/workflows/career-intelligence.yml` from the private Career Ops repository. Removing the example inside the extension has no effect.

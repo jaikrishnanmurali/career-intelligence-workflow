@@ -1,25 +1,26 @@
-# Copy this file to .github/workflows/deep-job-scan.yml only in a private fork.
-# A live deployment commits its search state and recommendations to the repo.
-
-name: Scheduled career-intelligence scan
+# Install this only in the root of a private Career Ops repository.
+name: Scheduled Career Intelligence digest
 
 on:
   schedule:
     - cron: "23 7,19 * * *"
-      timezone: "Europe/Stockholm"
+      timezone: "UTC"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: career-intelligence-scan
+  group: career-intelligence-digest
   cancel-in-progress: false
 
 jobs:
   scan:
     runs-on: ubuntu-latest
     timeout-minutes: 28
+    defaults:
+      run:
+        working-directory: extensions/career-intelligence-workflow
     steps:
       - uses: actions/checkout@v4
 
@@ -27,16 +28,16 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Install locked dependencies
+      - name: Install locked extension dependencies
         run: npm ci
 
-      - name: Validate private deployment
-        run: npm run doctor -- --deploy
+      - name: Validate Career Ops and the private digest profile
+        run: npm run doctor -- --deploy --career-ops-root ../..
 
-      - name: Run tests
+      - name: Run extension tests
         run: npm test
 
-      - name: Run scan and email digest
+      - name: Scan and send the digest
         run: node src/run.mjs --send
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
@@ -46,15 +47,16 @@ jobs:
           MAX_SCAN_MINUTES: "18"
           MAX_PAGE_VERIFICATIONS: "60"
 
-      - name: Save private search state
+      - name: Save private recommendation state
+        working-directory: .
         run: |
           git config user.name "career-intelligence-bot"
           git config user.email "career-intelligence-bot@users.noreply.github.com"
-          git add -f state/state.json reports/latest.json
+          git add -f extensions/career-intelligence-workflow/state/state.json
+          git add -f extensions/career-intelligence-workflow/reports/latest.json
           if git diff --cached --quiet; then
             echo "No state changes to save."
           else
-            git commit -m "chore: save scan state"
+            git commit -m "chore: save Career Intelligence state"
             git push
           fi
-

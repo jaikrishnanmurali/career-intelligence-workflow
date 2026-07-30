@@ -47,6 +47,12 @@ export async function integrateCareerOps(careerOpsRoot, options = {}) {
   if (!await exists(path.join(targetRoot, 'modes'))) {
     throw new Error(`No Career Ops modes directory found at ${targetRoot}.`);
   }
+  if (!await exists(path.join(targetRoot, 'config', 'profile.yml'))) {
+    throw new Error(`No Career Ops profile found at ${path.join(targetRoot, 'config', 'profile.yml')}.`);
+  }
+  if (!await exists(path.join(targetRoot, 'cv.md'))) {
+    throw new Error(`No Career Ops cv.md found at ${targetRoot}. Complete Career Ops onboarding first.`);
+  }
 
   const template = await readFile(TEMPLATE_PATH, 'utf8');
   const rendered = template.replaceAll('{{EXTENSION_PATH}}', relativeExtension);
@@ -54,13 +60,13 @@ export async function integrateCareerOps(careerOpsRoot, options = {}) {
     path.join(targetRoot, '.agents', 'skills', 'career-intelligence', 'SKILL.md'),
     path.join(targetRoot, '.claude', 'skills', 'career-intelligence', 'SKILL.md'),
   ];
-  const results = [];
+  const plans = [];
 
   for (const destination of destinations) {
     if (await exists(destination)) {
       const current = await readFile(destination, 'utf8');
       if (current === rendered) {
-        results.push({ destination, status: 'current' });
+        plans.push({ destination, status: 'current' });
         continue;
       }
       if (!force) {
@@ -69,12 +75,17 @@ export async function integrateCareerOps(careerOpsRoot, options = {}) {
         );
       }
     }
-    await mkdir(path.dirname(destination), { recursive: true });
-    await writeFile(destination, rendered, 'utf8');
-    results.push({ destination, status: 'installed' });
+    plans.push({ destination, status: 'installed' });
   }
 
-  return { targetRoot, extensionRoot, relativeExtension, results };
+  for (const plan of plans) {
+    if (plan.status === 'current') continue;
+    const { destination } = plan;
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, rendered, 'utf8');
+  }
+
+  return { targetRoot, extensionRoot, relativeExtension, results: plans };
 }
 
 function argumentValue(name) {
@@ -100,10 +111,10 @@ if (isMain) {
       }
       process.stdout.write([
         '',
-        'Career Intelligence is now available as a Career Ops discovery skill.',
-        'Codex: invoke $career-intelligence or ask to run the Career Intelligence scan.',
-        'Claude Code: invoke /career-intelligence.',
-        'The scanner recommends roles; Career Ops handles evaluation and CV tailoring after you choose one.',
+        'Career Intelligence is now available as the Career Ops email and discovery companion.',
+        'Open Codex or Claude from the Career Ops root and ask:',
+        '"Set up my 12-hour Career Intelligence job digest."',
+        'No email was sent and no schedule was enabled.',
         '',
       ].join('\n'));
     } catch (error) {

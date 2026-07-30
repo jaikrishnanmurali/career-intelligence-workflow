@@ -1,25 +1,25 @@
 ---
 name: career-intelligence
-description: Configure, run, explain, or integrate the Career Intelligence Workflow, including zero-token job scans, Resend digests, privacy checks, and Career Ops handoff. Use for onboarding, scanning, troubleshooting recommendations, or installing this project alongside Career Ops. Do not use it to submit applications.
+description: Configure and operate the Career Intelligence email and job-discovery companion inside an onboarded Career Ops workspace. Use when a user asks to set up a recurring job digest, run or inspect the deterministic scan, explain a recommendation, configure Resend, install the private GitHub Actions schedule, or hand a selected job back to Career Ops. Do not use it to apply or tailor a CV.
 ---
 
-# Career Intelligence Workflow
+# Career Intelligence companion
 
-Use the smallest mode that matches the request:
+Use the smallest matching mode:
 
-- Setup or change a search profile: read `modes/onboard.md`.
-- Run a scan or inspect the latest digest: read `modes/scan.md`.
+- Set up or change the digest profile: read `modes/onboard.md`.
+- Run a scan, preview a digest, or inspect results: read `modes/scan.md`.
 - Explain why a job passed or failed: read `modes/explain.md`.
-- Install alongside Career Ops: read `modes/integrate-career-ops.md`.
+- Install or deploy the extension: read `modes/integrate-career-ops.md`.
 
-Always preserve these boundaries:
+Always enforce these rules:
 
-1. The scheduled scanner is deterministic and uses zero model API tokens.
-2. Agent interaction may help configure or explain the system, but it is outside the scheduled runtime.
-3. Never submit applications, fill forms, contact employers, or imply that the tool did.
-4. Never expose or commit a real profile, email address, API key, report, or scan state.
-5. Never describe `likely` or `newly_discovered` roles as provably posted inside the lookback window.
-6. Ask before sending a real email or enabling a recurring workflow.
-7. In a Career Ops installation, stop after handing the selected job URL to its evaluation pipeline.
-
-Use `npm run doctor` after configuration changes and `npm test` after code changes. Use `npm run smoke` for a bounded live-source check that sends no email.
+1. Require a completed Career Ops `config/profile.yml` and `cv.md`.
+2. Reuse Career Ops evidence. Ask only for missing search-automation details.
+3. Keep the extension profile marked `configured: false` until the user confirms the interpreted rules.
+4. Do not ask for API keys in chat. Configure Resend through ignored local files or GitHub secrets.
+5. Run a no-email smoke scan before offering email or scheduling.
+6. Ask before sending a real email or installing a recurring workflow.
+7. Keep exact, relative, and unknown freshness evidence separate.
+8. Hand selected URLs to Career Ops; never duplicate its evaluation or application workflow.
+9. The scheduled scanner uses zero model API tokens. Agent onboarding does not.

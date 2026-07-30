@@ -1,17 +1,18 @@
 ---
 name: career-intelligence
-description: Run the installed Career Intelligence companion for deterministic job discovery, freshness evidence, Resend digests, and handoff of selected URLs into Career Ops. Do not use it to submit applications.
+description: Set up and operate the installed Career Intelligence email and job-discovery companion. Use for recurring job digests, deterministic scans, Resend delivery, recommendation explanations, and handoff of selected jobs to Career Ops. Do not use it to submit applications.
 ---
 
-# Career Intelligence companion
+# Career Intelligence adapter
 
 The extension is installed at `{{EXTENSION_PATH}}` relative to this Career Ops root.
 
-1. Read `{{EXTENSION_PATH}}/AGENTS.md`.
-2. Read `{{EXTENSION_PATH}}/.agents/skills/career-intelligence/SKILL.md`.
-3. Route setup, scan, and explanation requests through the matching mode under `{{EXTENSION_PATH}}/modes/`.
-4. Run scanner commands from `{{EXTENSION_PATH}}`.
-5. Keep its real profile, Resend credentials, reports, and state private.
-6. When the user selects a recommendation, pass the job URL and evidence summary to Career Ops' existing evaluation pipeline.
-7. Do not let Career Intelligence tailor a CV, edit the Career Ops tracker, submit an application, or contact an employer.
-8. The scheduled scanner uses zero model API tokens. Any Codex or Claude conversation is an optional interface outside that runtime.
+1. Follow this Career Ops workspace's root instructions and evidence rules first.
+2. Read `{{EXTENSION_PATH}}/AGENTS.md`.
+3. Read `{{EXTENSION_PATH}}/.agents/skills/career-intelligence/SKILL.md`.
+4. Route the request through the matching file in `{{EXTENSION_PATH}}/modes/`.
+5. Run extension commands from `{{EXTENSION_PATH}}` while keeping the Career Ops root available at `../..`.
+6. Use Career Ops `config/profile.yml` and `cv.md` as source evidence. Store search-only additions under the extension.
+7. When the user chooses a recommendation, give its URL and evidence summary to the existing Career Ops evaluation pipeline.
+8. Never let this extension tailor a CV, edit the tracker, submit an application, or contact an employer.
+9. Never expose the extension profile, email addresses, credentials, reports, or state.

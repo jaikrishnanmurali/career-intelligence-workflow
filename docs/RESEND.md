@@ -1,88 +1,93 @@
 # Resend email setup
 
-Career Intelligence sends digest emails through Resend's HTTPS API. It uses a sending key only; it does not need inbox access.
+Career Intelligence uses the Resend HTTPS API to send the recommendation digest. It needs sending access only and never reads an inbox.
 
-## 1. Create and verify a sending domain
+You do not need a live website. You may not need a domain either.
 
-1. Create a Resend account at <https://resend.com>.
-2. Open **Domains** and add a domain you control. Resend recommends a subdomain such as `updates.example.com` to isolate sending reputation.
-3. Add the SPF and DKIM records shown by Resend to your DNS provider.
-4. Wait until the domain is marked verified.
+Complete profile onboarding, tests, and the no-email smoke scan before enabling delivery.
 
-Resend's domain documentation: <https://resend.com/docs/dashboard/domains/introduction>
+## Choose the simplest sending option
 
-For initial testing, Resend may restrict delivery to the email address associated with your account. A verified domain is required for ordinary delivery to other recipients.
+### No domain: send the digest to yourself
 
-## 2. Create the least-privileged API key
+Use this route when the digest will go to the same email address used for your Resend account.
 
-1. Open the Resend API Keys dashboard.
-2. Select **Create API Key**.
-3. Name it for this deployment, for example `career-intelligence-github`.
-4. Choose **Sending access** and restrict it to the verified domain when that option is available.
-5. Copy the key immediately. Resend shows a new key only once.
+Resend lets a new account send from `onboarding@resend.dev` to that account email. It will not send from this test domain to a different recipient.
 
-API-key documentation: <https://resend.com/docs/dashboard/api-keys/introduction>
+Use:
 
-Do not paste the key into `profile.yml`, a workflow file, an issue, a chat intended for sharing, or any committed file.
+```dotenv
+CAREER_DIGEST_FROM="Career Intelligence <onboarding@resend.dev>"
+CAREER_DIGEST_TO="the-email-used-for-your-resend-account@example.com"
+```
 
-## 3. Test locally
+This is enough for a personal job-search digest. No domain purchase, DNS change, or website is required.
 
-Open the ignored `.env` created by `npm run init`:
+Resend documents the recipient restriction here: <https://resend.com/docs/knowledge-base/403-error-resend-dev-domain>
+
+### Your own domain: send to other recipients
+
+Choose this route if the digest must go to another address, several people, or a user other than the Resend account owner.
+
+You need a domain you control and access to its DNS records. The domain does not need to host a website. Add the SPF and DKIM records shown by Resend, wait for verification, and use an address on that domain:
+
+```dotenv
+CAREER_DIGEST_FROM="Career Intelligence <digest@updates.example.com>"
+CAREER_DIGEST_TO="recipient@example.net"
+```
+
+A sending subdomain such as `updates.example.com` keeps this email traffic separate from ordinary mail.
+
+Resend domain guide: <https://resend.com/docs/dashboard/domains/introduction>
+
+## Create a sending key
+
+Create a sending-only Resend API key. If you use a verified domain and Resend offers a domain restriction for the key, select that domain. Copy the key once and store it privately.
+
+Do not put the key in Career Ops YAML, the extension profile, a workflow file, a GitHub issue, or agent chat.
+
+## Test locally
+
+From `career-ops/extensions/career-intelligence-workflow`, copy `.env.example` to an ignored `.env` and add the three values:
 
 ```dotenv
 RESEND_API_KEY=re_replace_this_value
-CAREER_DIGEST_FROM="Career Intelligence <digest@updates.example.com>"
-CAREER_DIGEST_TO="you@example.com"
+CAREER_DIGEST_FROM="Career Intelligence <onboarding@resend.dev>"
+CAREER_DIGEST_TO="the-email-used-for-your-resend-account@example.com"
 ```
 
-The domain after `@` in `CAREER_DIGEST_FROM` must match the domain or subdomain verified in Resend. Resend accepts a friendly sender name in the `Name <address>` format.
-
-Validate without printing the secret:
+Validate without printing the values:
 
 ```bash
-npm run doctor -- --email
+npm run doctor -- --email --career-ops-root ../..
 ```
 
-Send one real digest:
+Send one real digest only when intended:
 
 ```bash
 npm run scan -- --send
 ```
 
-The API request includes an idempotency key derived from the run timestamp and recommendation URLs, reducing duplicate sends if the same request is retried. Resend documents idempotency keys in its send-email reference: <https://resend.com/docs/api-reference/emails/send-email>.
+If you use `onboarding@resend.dev`, `CAREER_DIGEST_TO` must be the email associated with the Resend account. With a verified domain, the sender must use that domain.
 
-## 4. Add GitHub Actions secrets
+## Add GitHub Actions secrets
 
-In the private deployment repository:
+In the private Career Ops repository, add exactly:
 
-1. Open **Settings**.
-2. Select **Secrets and variables**, then **Actions**.
-3. Add these repository secrets exactly:
+| Secret | No-domain personal setup | Verified-domain setup |
+| --- | --- | --- |
+| `RESEND_API_KEY` | Sending-only key | Sending-only key |
+| `CAREER_DIGEST_FROM` | `Career Intelligence <onboarding@resend.dev>` | `Career Intelligence <digest@your-domain>` |
+| `CAREER_DIGEST_TO` | Resend account email | Intended recipient |
 
-| Secret | Value |
-| --- | --- |
-| `RESEND_API_KEY` | The sending-only Resend key. |
-| `CAREER_DIGEST_FROM` | `Career Intelligence <digest@your-verified-domain>` |
-| `CAREER_DIGEST_TO` | The recipient address. |
+Do not commit the local `.env`.
 
-GitHub only exposes a repository secret to a workflow when the workflow maps it explicitly. The scheduled example maps these three values as environment variables. GitHub's secrets overview is at <https://docs.github.com/en/actions/concepts/security/secrets>.
+## Rotate an exposed key
 
-Do not also commit a `.env` file to the cloud repository.
-
-## 5. Rotate a key
-
-If a key is pasted into a public place or committed, treat it as compromised:
-
-1. Create a replacement sending key.
-2. Update the local `.env` and the GitHub Actions secret.
+1. Create a replacement key.
+2. Update the local ignored value and the GitHub secret.
 3. Run one successful test.
-4. Delete the old key in Resend.
+4. Revoke the exposed key.
+5. Inspect Git history, workflow logs, and repository access.
 
-Deleting a file from the latest Git commit does not remove the secret from prior history. Revoke the key first. Resend's key-handling guidance is at <https://resend.com/docs/knowledge-base/how-to-handle-api-keys>.
-
-## Common errors
-
-- **Invalid API key:** create a new key and replace the stored value; do not print it for debugging.
-- **Domain not verified:** make `CAREER_DIGEST_FROM` use the exact verified domain and recheck SPF/DKIM status.
-- **Testing recipient restriction:** send to the Resend account's own address or complete domain verification.
-- **No email:** open the Actions log or local terminal, confirm the scan completed, and check the Resend logs for the request id.
+Deleting a file does not remove a key from prior commits or logs.

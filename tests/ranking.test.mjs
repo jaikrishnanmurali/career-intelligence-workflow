@@ -18,25 +18,25 @@ const scanStartedAt = '2026-07-30T20:00:00.000Z';
 
 test('recognizes adjacent role titles and priority locations', () => {
   const family = familyFor({
-    title: 'Partner Enablement Specialist',
-    description: 'Support partner launches and sales enablement.',
+    title: 'Customer Onboarding Specialist',
+    description: 'Support onboarding, adoption, and the customer journey.',
   });
-  assert.equal(family.family.id, 'product-partner-marketing');
-  assert.equal(locationFor('Stockholm, Sweden').group.id, 'sweden');
-  assert.equal(locationFor('Amsterdam, Netherlands').group.id, 'amsterdam');
+  assert.equal(family.family.id, 'customer-success');
+  assert.equal(locationFor('Dublin, Ireland').group.id, 'ireland');
+  assert.equal(locationFor('Europe Remote').group.id, 'europe-remote');
 });
 
 test('treats mandatory local language wording as a hard blocker', () => {
-  assert.equal(languageBlocker('Fluent Swedish is required for this role.'), 'swedish');
-  assert.equal(languageBlocker('Swedish is helpful but not required.'), null);
+  assert.equal(languageBlocker('Fluent German is required for this role.'), 'german');
+  assert.equal(languageBlocker('German is helpful but not required.'), null);
 });
 
 test('keeps verified, likely, and newly discovered roles distinct', () => {
   const base = {
     company: 'Example',
-    title: 'Product Marketing Specialist',
-    location: 'Stockholm, Sweden',
-    description: 'Positioning, messaging, and product launches.',
+    title: 'Customer Success Specialist',
+    location: 'Dublin, Ireland',
+    description: 'Customer onboarding, adoption, and retention.',
     source: 'test',
   };
   const { candidates } = shortlistCandidates([
@@ -81,9 +81,9 @@ test('does not repeat an untimestamped role already in saved state', () => {
   const result = shortlistCandidates([{
     url,
     company: 'Example',
-    title: 'Growth Marketing Specialist',
-    location: 'Vienna, Austria',
-    description: 'Lifecycle, retention, and growth campaigns.',
+    title: 'Community Operations Specialist',
+    location: 'Europe Remote',
+    description: 'Member experience and community program delivery.',
     source: 'test',
     postedAt: null,
   }], {
@@ -97,25 +97,24 @@ test('does not repeat an untimestamped role already in saved state', () => {
 
 
 test('rejects country-specific non-EU remote roles and generic false positives', () => {
-  assert.equal(locationFor('United States, Remote').eligible, false);
+  assert.equal(locationFor('United States only, Remote').eligible, false);
   assert.equal(locationFor('Worldwide / Europe Remote').eligible, true);
   assert.equal(familyFor({
     title: 'BI Specialist',
-    description: 'Customer insights, market research, product launches, and sales enablement.',
+    description: 'Financial reporting and database maintenance.',
   }), null);
 });
 
 
 test('recognizes common local-language requirement wording and removes weak manager roles', () => {
   assert.equal(languageBlocker('Du hast sehr gute Deutschkenntnisse.'), 'german');
-  assert.equal(languageBlocker('Du talar flytande svenska.'), 'swedish');
   assert.equal(languageBlocker('Français et anglais professionnels niveau B2+.'), 'french');
   const result = shortlistCandidates([{
     url: 'https://example.com/manager',
     company: 'Example',
-    title: 'Performance Marketing Manager',
-    location: 'Munich, Germany',
-    description: 'SEO and conversion campaigns.',
+    title: 'Community Operations Manager',
+    location: 'Dublin, Ireland',
+    description: 'Lead a team of 12, own hiring, and deliver community programs.',
     postedAt: '2026-07-30T18:00:00.000Z',
     postingPrecision: 'exact',
     source: 'test',
@@ -125,13 +124,13 @@ test('recognizes common local-language requirement wording and removes weak mana
 
 test('frames experience requirements as core, adjacent, or stretch', () => {
   assert.deepEqual(
-    experienceSignal('At least 5 years of relevant professional experience.'),
-    { minimumYears: 5, band: 'core', penalty: 0, caution: '' },
+    experienceSignal('At least 3 years of relevant professional experience.'),
+    { minimumYears: 3, band: 'core', penalty: 0, caution: '' },
   );
-  const adjacent = experienceSignal('Minimum 6 years of product marketing experience.');
+  const adjacent = experienceSignal('Minimum 5 years of customer success experience.');
   assert.equal(adjacent.band, 'adjacent');
   assert.match(adjacent.caution, /within total experience/i);
-  const stretch = experienceSignal('8+ years of growth marketing experience required.');
+  const stretch = experienceSignal('7+ years of community operations experience required.');
   assert.equal(stretch.band, 'stretch');
   assert.ok(stretch.penalty > adjacent.penalty);
 });

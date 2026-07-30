@@ -1,13 +1,15 @@
 {
   "name": "career-intelligence-workflow",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "A configurable, zero-token job-discovery and email-digest workflow.",
+  "description": "Always-on job discovery and Resend email digests for Career Ops.",
   "type": "module",
   "scripts": {
     "doctor": "node scripts/doctor.mjs",
     "init": "node scripts/init.mjs",
     "integrate:career-ops": "node scripts/integrate-career-ops.mjs",
+    "sync:career-ops": "node scripts/import-career-ops-profile.mjs",
+    "workflow:install": "node scripts/install-workflow.mjs",
     "test": "node --test",
     "scan": "node src/run.mjs",
     "smoke": "node scripts/smoke.mjs"
@@ -17,5 +19,45 @@
   },
   "dependencies": {
     "yaml": "^2.9.0"
-  }
+  },
+  "bin": {
+    "career-intelligence-workflow": "bin/cli.mjs"
+  },
+  "author": "Jai Krishnan Murali",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jaikrishnanmurali/career-intelligence-workflow.git"
+  },
+  "keywords": [
+    "career-ops",
+    "job-search",
+    "email-digest",
+    "resend",
+    "github-actions",
+    "automation"
+  ],
+  "files": [
+    ".agents/",
+    ".claude/",
+    ".env.example",
+    ".gitignore",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "LICENSE",
+    "README.md",
+    "ROADMAP.md",
+    "SECURITY.md",
+    "bin/",
+    "config/profile.example.yml",
+    "docs/",
+    "examples/",
+    "integrations/",
+    "modes/",
+    "reports/latest.example.json",
+    "scripts/",
+    "src/",
+    "state/state.example.json",
+    "tests/"
+  ]
 }

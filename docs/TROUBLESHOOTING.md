@@ -1,71 +1,47 @@
 # Troubleshooting
 
-## The scanner says it is using the example profile
+## Installation says Career Ops is incomplete
+
+Run the installer from the Career Ops root after completing its onboarding. The root must contain `package.json` with the `career-ops` package name, `AGENTS.md`, `modes/`, `config/profile.yml`, and `cv.md`.
+
+## The extension already exists
+
+The installer refuses to overwrite `extensions/career-intelligence-workflow`. Review and update the existing extension instead of rerunning a fresh install.
+
+## Diagnostics say the profile is unconfirmed
+
+Start Codex or Claude from the Career Ops root and ask to set up the 12-hour digest. The imported draft intentionally says `configured: false` until the user reviews the search rules.
+
+## YAML fails to load
+
+Ask the agent to repair the extension's private `config/profile.yml` and rerun diagnostics. Do not edit Career Ops `config/profile.yml` merely to satisfy the extension.
+
+## The smoke scan returns no recommendations
+
+This can be correct. Inspect `reports/latest.json` for source failures, freshness decisions, hard blockers, and candidates outside the bounded verification budget. Widen one confirmed rule at a time.
+
+## "Posted today" is not verified
+
+"Today" does not prove an age under 12 hours. The scanner labels relative evidence `likely`. An untimestamped live role is `newly_discovered` and appears once.
+
+## Email fails
 
 Run:
 
 ```bash
-npm run init
+npm run doctor -- --email --career-ops-root ../..
 ```
 
-Then edit `config/profile.yml`. The real filename has no `.example` segment. Run `npm run doctor` again.
+Check the key, sender, recipient restriction, and exact GitHub secret names without printing the key. If the sender is `onboarding@resend.dev`, the recipient must be the email associated with the Resend account. Other recipients require a verified domain, but that domain does not need a live website.
 
-## YAML fails to load
+## The workflow cannot find the extension
 
-Common causes are tabs, uneven indentation, a missing colon, or an unquoted value containing special punctuation. Compare the affected section with `config/profile.example.yml`. The doctor reports the path and parser error without printing the profile.
+The supported path is `extensions/career-intelligence-workflow`. If the folder was renamed, update every workflow working-directory and saved-state path consistently.
 
-## The scan returns no recommendations
+## The schedule did not run exactly on time
 
-This can be correct. Check `reports/latest.json` for:
+Scheduled GitHub workflows can be delayed. Run the workflow manually and confirm it exists on the default branch of the private repository.
 
-- number of normalized jobs;
-- provider failures;
-- relevant roles rejected by freshness, location, language, authorization, expiry, or manager thresholds;
-- candidates left outside the bounded verification budget.
+## Codex or Claude cannot find the skill
 
-Run `npm run smoke` first. Widen one rule at a time and add a regression test when a listing exposes a systematic false negative.
-
-## A role says “posted today” but is not verified
-
-“Today” does not prove that the posting is less than 12 hours old. The scanner labels relative evidence as `likely` and sends it only once when it is new to saved state. This is intentional.
-
-## An old untimestamped role appeared once
-
-Without timestamp evidence, the scanner can prove only that the URL is new to its state. It labels the role `newly_discovered`, does not call it recently posted, and suppresses it in later runs.
-
-## A language preference was treated as mandatory
-
-Record the exact sentence as a test case. The general gate ignores phrases such as “preferred,” “helpful,” and “nice to have,” but natural-language requirement patterns vary. Do not weaken all language checks to fix one phrase.
-
-## Email fails with a 403
-
-Check:
-
-- the API key is current and has sending access;
-- the sender domain exactly matches a verified Resend domain;
-- the test recipient is permitted by the account's current verification state;
-- the GitHub secret names match the workflow.
-
-See [RESEND.md](RESEND.md) and Resend's error reference: <https://resend.com/docs/api-reference/errors>.
-
-## The GitHub schedule did not run exactly on time
-
-GitHub documents that scheduled workflows can be delayed during high load. Run the workflow manually from the Actions tab. Confirm the workflow exists on the default branch and has not been disabled.
-
-## The workflow cannot find `yaml`
-
-The workflow must run `npm ci` before tests or scans. Confirm `package-lock.json` is committed and the setup step has not been removed.
-
-## Career Ops integration refuses to install
-
-The scanner repository must be inside the Career Ops root, normally at `extensions/career-intelligence-workflow`. The installer also expects `AGENTS.md` and `modes/` in the supplied root.
-
-If a destination skill already exists, inspect it. The installer refuses to overwrite a different file unless `--force` is supplied deliberately.
-
-## Codex does not show the skill
-
-Start Codex from the repository root and ask it to list active skills. Confirm `.agents/skills/career-intelligence/SKILL.md` exists. Restart the session if project instructions were added after the session began.
-
-## Claude Code does not show `/career-intelligence`
-
-Start Claude Code from the repository root and confirm `.claude/skills/career-intelligence/SKILL.md` exists. If the top-level skills directory was created during an existing session, restart Claude Code so it can watch the directory.
+Start a new session from the Career Ops root. Confirm the installed adapter exists under `.agents/skills/career-intelligence/` or `.claude/skills/career-intelligence/`.

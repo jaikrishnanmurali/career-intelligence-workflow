@@ -16,10 +16,10 @@ const report = {
   recommendations: [{
     url: 'https://example.com/1',
     company: 'Example <script>',
-    title: 'Product Marketing Specialist',
-    location: 'Stockholm, Sweden',
+    title: 'Customer Success Specialist',
+    location: 'Dublin, Ireland',
     fit: 'Priority',
-    why: 'Product marketing match.',
+    why: 'Customer success match.',
     cautions: '',
     freshness: 'verified',
     postedAt: '2026-07-30T18:00:00.000Z',
