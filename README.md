@@ -92,7 +92,7 @@ One broken source is recorded without stopping the other lanes.
 
 Only after the no-email scan passes:
 
-1. Configure a sending-only Resend key using [the Resend guide](docs/RESEND.md).
+1. Configure a sending-only Resend key using [the Resend guide](docs/RESEND.md). For a personal digest sent to the Resend account email, no domain or live website is required.
 2. Put the Career Ops workspace in a **private** GitHub repository.
 3. Add the three documented GitHub Actions secrets.
 4. From the extension directory, install the workflow only after reviewing it:

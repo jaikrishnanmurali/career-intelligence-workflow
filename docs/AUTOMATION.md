@@ -53,7 +53,7 @@ CAREER_DIGEST_FROM
 CAREER_DIGEST_TO
 ```
 
-See [RESEND.md](RESEND.md) for values and domain verification.
+See [RESEND.md](RESEND.md) for the no-domain personal setup and the optional verified-domain setup.
 
 ## What the workflow does
 

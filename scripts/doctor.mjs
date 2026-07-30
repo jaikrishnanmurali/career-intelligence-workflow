@@ -95,9 +95,18 @@ if (requireEmail) {
   check(Boolean(process.env.CAREER_DIGEST_FROM), 'CAREER_DIGEST_FROM is missing.');
   check(Boolean(process.env.CAREER_DIGEST_TO), 'CAREER_DIGEST_TO is missing.');
   check(
+    !String(process.env.CAREER_DIGEST_TO || '').endsWith('@example.com'),
+    'CAREER_DIGEST_TO still uses the example address.',
+  );
+  check(
     !String(process.env.CAREER_DIGEST_FROM || '').includes('.example'),
     'CAREER_DIGEST_FROM still uses the example domain.',
   );
+  if (String(process.env.CAREER_DIGEST_FROM || '').includes('@resend.dev')) {
+    warnings.push(
+      'The resend.dev test sender can deliver only to the email associated with this Resend account.',
+    );
+  }
 }
 
 process.stdout.write([

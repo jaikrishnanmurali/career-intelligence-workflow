@@ -32,7 +32,7 @@ Run:
 npm run doctor -- --email --career-ops-root ../..
 ```
 
-Check the key, verified sender domain, recipient restrictions, and exact GitHub secret names without printing the key.
+Check the key, sender, recipient restriction, and exact GitHub secret names without printing the key. If the sender is `onboarding@resend.dev`, the recipient must be the email associated with the Resend account. Other recipients require a verified domain, but that domain does not need a live website.
 
 ## The workflow cannot find the extension
 
