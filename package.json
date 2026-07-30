@@ -5,12 +5,17 @@
   "description": "A configurable, zero-token job-discovery and email-digest workflow.",
   "type": "module",
   "scripts": {
+    "doctor": "node scripts/doctor.mjs",
+    "init": "node scripts/init.mjs",
+    "integrate:career-ops": "node scripts/integrate-career-ops.mjs",
     "test": "node --test",
     "scan": "node src/run.mjs",
     "smoke": "node scripts/smoke.mjs"
   },
   "engines": {
     "node": ">=22"
+  },
+  "dependencies": {
+    "yaml": "^2.9.0"
   }
 }
-

@@ -1,8 +1,13 @@
 import {
   DEFAULT_MAX_PAGE_VERIFICATIONS,
+  EXPERIENCE_PROFILE,
+  GLOBAL_SCOPE_SIGNALS,
+  HOME_LOCATION_GROUP_ID,
   IC_TITLE_SIGNALS,
   LOCATION_GROUPS,
   LOOKBACK_HOURS,
+  MANAGER_PREFERENCE,
+  NON_TARGET_COUNTRY_TERMS,
   OBVIOUS_NON_EU_ONLY,
   ROLE_FAMILIES,
   TITLE_EXCLUDES,
@@ -80,30 +85,14 @@ export function familyFor(job) {
 export function locationFor(value) {
   const text = ` ${normalizeText(value)} `;
   if (OBVIOUS_NON_EU_ONLY.some((term) => text.includes(normalizeText(term)))) {
-    return { eligible: false, reason: 'Location is explicitly outside the EU search scope.' };
+    return { eligible: false, reason: 'Location is explicitly outside the configured search scope.' };
   }
-  const nonEuCountry = [
-    'united states',
-    'usa',
-    'canada',
-    'india',
-    'australia',
-    'new zealand',
-    'singapore',
-    'philippines',
-    'latin america',
-    'latam',
-    'apac',
-  ].some((term) => text.includes(term));
-  const explicitlyGlobalOrEuropean = [
-    'worldwide',
-    'global',
-    'europe',
-    'european union',
-    'emea',
-  ].some((term) => text.includes(term));
-  if (nonEuCountry && !explicitlyGlobalOrEuropean) {
-    return { eligible: false, reason: 'Location is outside the EU search scope.' };
+  const nonTargetCountry = NON_TARGET_COUNTRY_TERMS
+    .some((term) => text.includes(normalizeText(term)));
+  const explicitlyGlobal = GLOBAL_SCOPE_SIGNALS
+    .some((term) => text.includes(normalizeText(term)));
+  if (nonTargetCountry && !explicitlyGlobal) {
+    return { eligible: false, reason: 'Location is outside the configured search scope.' };
   }
   for (const group of LOCATION_GROUPS) {
     if (group.terms.some((term) => text.includes(normalizeText(term)))) {
@@ -114,12 +103,12 @@ export function locationFor(value) {
     return {
       eligible: true,
       group: { id: 'unknown', label: 'Location unconfirmed', score: 3 },
-      caution: 'Location is not stated; confirm Sweden/EU eligibility.',
+      caution: 'Location is not stated; confirm eligibility manually.',
     };
   }
   return {
     eligible: false,
-    reason: 'Location does not show Sweden, Amsterdam, Vienna, another EU country, or Europe-remote eligibility.',
+    reason: 'Location does not match any configured location group.',
   };
 }
 
@@ -132,7 +121,9 @@ export function languageBlocker(value) {
     ['french', /\b(?:francais courant|maitrise du francais|francais obligatoire|niveau c1 en francais|francais.{0,50}(?:professionnel(?:le)?s?|niveau b2|b2\+)|(?:professionnel(?:le)?s?|niveau b2|b2\+).{0,50}francais)\b/i],
   ];
   for (const [language, pattern] of localLanguagePatterns) {
-    if (pattern.test(text)) return language;
+    if (UNSUPPORTED_LOCAL_LANGUAGES.includes(language) && pattern.test(text)) {
+      return language;
+    }
   }
   for (const language of UNSUPPORTED_LOCAL_LANGUAGES) {
     const escaped = language.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -178,6 +169,41 @@ export function authorizationBlocker(value) {
     'must already have the right to work',
     'must be authorized to work',
   ].some((term) => text.includes(term));
+}
+
+export function experienceRequirement(value) {
+  const text = normalizeText(value);
+  const pattern = /\b(?:at least |minimum(?: of)? |over |more than )?(\d{1,2})(?:\s*(?:-|to)\s*(\d{1,2}))?\+?\s+years(?:\s+of)?(?:\s+[a-z+#./-]+){0,5}\s+experience\b/gi;
+  const requirements = [];
+  for (const match of text.matchAll(pattern)) {
+    const minimumYears = Number(match[1]);
+    if (minimumYears >= 1 && minimumYears <= 30) requirements.push(minimumYears);
+  }
+  if (!requirements.length) return null;
+  return { minimumYears: Math.max(...requirements) };
+}
+
+export function experienceSignal(value) {
+  if (EXPERIENCE_PROFILE.behavior === 'ignore') return null;
+  const requirement = experienceRequirement(value);
+  if (!requirement || EXPERIENCE_PROFILE.totalYears <= 0) return null;
+  if (requirement.minimumYears <= EXPERIENCE_PROFILE.coreYears) {
+    return { ...requirement, band: 'core', penalty: 0, caution: '' };
+  }
+  if (requirement.minimumYears <= EXPERIENCE_PROFILE.totalYears) {
+    return {
+      ...requirement,
+      band: 'adjacent',
+      penalty: 2,
+      caution: `The posting asks for ${requirement.minimumYears}+ years. This is above the configured core experience but within total experience including adjacent work.`,
+    };
+  }
+  return {
+    ...requirement,
+    band: 'stretch',
+    penalty: Math.min(18, (requirement.minimumYears - EXPERIENCE_PROFILE.totalYears) * 4),
+    caution: `The posting asks for ${requirement.minimumYears}+ years, above the configured ${EXPERIENCE_PROFILE.totalYears} years of total experience. Treat this as a stretch, not an automatic rejection.`,
+  };
 }
 
 function freshnessFor(job, priorSeenUrls, scanStartedAt) {
@@ -234,12 +260,18 @@ function titleIsExcluded(title) {
 function scoreCandidate(job, family, location, freshness) {
   const title = normalizeText(job.title);
   const description = normalizeText(job.description);
+  const experience = experienceSignal(description);
   let score = family.family.priority * 12;
   score += location.group.score;
   score += freshness.freshnessRank * 4;
   if (IC_TITLE_SIGNALS.some((term) => containsTerm(title, term))) score += 10;
-  if (containsTerm(title, 'manager')) score -= 14;
-  if (peopleManagementRequired(description)) score -= 24;
+  if (MANAGER_PREFERENCE.preferIndividualContributor && containsTerm(title, 'manager')) {
+    score -= MANAGER_PREFERENCE.titlePenalty;
+  }
+  if (MANAGER_PREFERENCE.preferIndividualContributor && peopleManagementRequired(description)) {
+    score -= MANAGER_PREFERENCE.peopleManagementPenalty;
+  }
+  if (experience) score -= experience.penalty;
   score += Math.min(10, family.bodyMatches.length * 2);
   if (description.length >= 500) score += 3;
   return Math.round(score);
@@ -302,13 +334,21 @@ export function shortlistCandidates(jobs, state, scanStartedAt) {
       rejected.push({ ...job, reason: `Hard ${language} requirement.` });
       continue;
     }
-    if (location.group.id !== 'sweden' && authorizationBlocker(body)) {
-      rejected.push({ ...job, reason: 'Explicit work-authorization or no-sponsorship blocker outside Sweden.' });
+    if (
+      (!HOME_LOCATION_GROUP_ID || location.group.id !== HOME_LOCATION_GROUP_ID)
+      && authorizationBlocker(body)
+    ) {
+      rejected.push({ ...job, reason: 'Explicit work-authorization or no-sponsorship blocker outside the configured home-location group.' });
       continue;
     }
+    const experience = experienceSignal(body);
     const score = scoreCandidate(job, family, location, freshness);
-    if (containsTerm(normalizeText(job.title), 'manager') && score < 64) {
-      rejected.push({ ...job, reason: 'Manager-titled role did not clear the stronger individual-contributor fit threshold.' });
+    if (
+      MANAGER_PREFERENCE.preferIndividualContributor
+      && containsTerm(normalizeText(job.title), 'manager')
+      && score < MANAGER_PREFERENCE.lowFitManagerFloor
+    ) {
+      rejected.push({ ...job, reason: 'Manager-titled role did not clear the configured individual-contributor fit threshold.' });
       continue;
     }
     candidates.push({
@@ -316,6 +356,7 @@ export function shortlistCandidates(jobs, state, scanStartedAt) {
       ...freshness,
       family,
       locationMatch: location,
+      experience,
       score,
       fit: fitBand(score),
     });
@@ -357,30 +398,32 @@ async function verifyOne(candidate) {
       return { ...candidate, verified: false, rejectedReason: `Hard ${language} requirement on the live page.` };
     }
     if (
-      candidate.locationMatch.group.id !== 'sweden'
+      (!HOME_LOCATION_GROUP_ID || candidate.locationMatch.group.id !== HOME_LOCATION_GROUP_ID)
       && authorizationBlocker(description)
     ) {
       return {
         ...candidate,
         verified: false,
-        rejectedReason: 'Live page states an authorization or sponsorship blocker outside Sweden.',
+        rejectedReason: 'Live page states an authorization or sponsorship blocker outside the configured home-location group.',
       };
     }
     const hasApplySignal = /\b(apply|submit application|apply now|send application)\b/i
       .test(page.text);
     const cautions = [
       candidate.locationMatch.caution,
-      containsTerm(normalizeText(candidate.title), 'manager')
+      MANAGER_PREFERENCE.preferIndividualContributor
+        && containsTerm(normalizeText(candidate.title), 'manager')
         ? 'Manager title; confirm that the role is genuinely individual-contributor work.'
         : '',
-      peopleManagementRequired(description)
+      MANAGER_PREFERENCE.preferIndividualContributor && peopleManagementRequired(description)
         ? 'The description includes people-management language; treat this as a material gap.'
         : '',
+      experienceSignal(description)?.caution,
       !hasApplySignal
         ? 'The page loaded, but an application control was not visible in the fetched HTML; open it manually before applying.'
         : '',
-      candidate.locationMatch.group.id === 'eu' && normalizeText(candidate.location).includes('remote')
-        ? 'Confirm that remote employment is available from Sweden or another eligible EU country.'
+      normalizeText(candidate.location).includes('remote')
+        ? 'Confirm that remote employment is available in one of the configured locations.'
         : '',
     ].filter(Boolean);
     const richer = {

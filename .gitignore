@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+config/profile.yml
 node_modules/
 preview/
 state/state.json

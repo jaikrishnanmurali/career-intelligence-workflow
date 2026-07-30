@@ -1,373 +1,160 @@
-/**
- * Public example profile.
- *
- * Replace ROLE_FAMILIES, LOCATION_GROUPS, exclusions, and language rules with
- * evidence-based criteria for your own search. Keep private profile data in a
- * private fork rather than committing it to a public repository.
- */
-export const LOOKBACK_HOURS = 12;
-export const REQUEST_TIMEOUT_MS = 12_000;
-export const DEFAULT_ATS_BOARDS_PER_SOURCE = 400;
-export const DEFAULT_MAX_SCAN_MINUTES = 18;
-export const DEFAULT_MAX_PAGE_VERIFICATIONS = 60;
+import {
+  existsSync,
+  readFileSync,
+} from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-export const ROLE_FAMILIES = [
-  {
-    id: 'product-partner-marketing',
-    label: 'Product / partner marketing',
-    priority: 4,
-    terms: [
-      'product marketing',
-      'product marketer',
-      'partner marketing',
-      'channel marketing',
-      'ecosystem marketing',
-      'alliance marketing',
-      'alliances marketing',
-      'go-to-market',
-      'go to market',
-      'gtm',
-      'market development',
-      'commercial marketing',
-      'customer marketing',
-      'solutions marketing',
-      'portfolio marketing',
-      'partner enablement',
-      'sales enablement',
-      'commercial enablement',
-      'customer insights',
-      'market intelligence',
-      'proposition specialist',
-      'proposition manager',
-    ],
-    responsibilityTerms: [
-      'positioning',
-      'messaging',
-      'product launch',
-      'go-to-market',
-      'sales enablement',
-      'partner enablement',
-      'market research',
-      'customer insight',
-    ],
-  },
-  {
-    id: 'sustainability-circularity',
-    label: 'Sustainability / circularity',
-    priority: 3.8,
-    terms: [
-      'sustainability',
-      'sustainability specialist',
-      'sustainability coordinator',
-      'sustainability analyst',
-      'sustainability advisor',
-      'sustainability consultant',
-      'sustainability engineer',
-      'circular economy',
-      'circularity',
-      'circular business',
-      'resource efficiency',
-      'recommerce',
-      'reverse logistics',
-      'ecodesign',
-      'eco-design',
-      'product sustainability',
-      'sustainable product',
-      'climate program',
-      'climate programme',
-      'esg program',
-      'esg programme',
-      'impact specialist',
-      'lifecycle specialist',
-      'life cycle specialist',
-      'environmental specialist',
-      'industrial sustainability',
-    ],
-    responsibilityTerms: [
-      'circular economy',
-      'circular business',
-      'resource efficiency',
-      'reuse',
-      'lifecycle information',
-      'life cycle assessment',
-      'ecodesign',
-      'product sustainability',
-      'sustainability program',
-      'sustainability programme',
-    ],
-  },
-  {
-    id: 'growth-marketing',
-    label: 'Growth marketing',
-    priority: 3.4,
-    terms: [
-      'growth marketing',
-      'growth marketer',
-      'marketing specialist',
-      'digital marketing specialist',
-      'marketing coordinator',
-      'content marketing',
-      'content specialist',
-      'growth specialist',
-      'lifecycle marketing',
-      'crm specialist',
-      'crm marketing',
-      'retention marketing',
-      'engagement marketing',
-      'activation specialist',
-      'acquisition marketing',
-      'demand generation',
-      'digital growth',
-      'conversion specialist',
-      'campaign operations',
-      'marketing operations',
-      'marketing automation',
-      'performance marketing',
-      'content growth',
-      'seo specialist',
-      'e-commerce growth',
-      'ecommerce growth',
-      'customer journey',
-      'marketing analyst',
-      'growth analyst',
-    ],
-    responsibilityTerms: [
-      'acquisition',
-      'retention',
-      'activation',
-      'conversion',
-      'customer journey',
-      'marketing automation',
-      'campaign operations',
-      'experimentation',
-      'seo',
-      'answer engine optimization',
-    ],
-  },
-  {
-    id: 'product-operations-delivery',
-    label: 'Product operations / delivery',
-    priority: 3,
-    terms: [
-      'product operations',
-      'product ops',
-      'product specialist',
-      'product coordinator',
-      'program coordinator',
-      'programme coordinator',
-      'project coordinator',
-      'program specialist',
-      'programme specialist',
-      'project specialist',
-      'program analyst',
-      'programme analyst',
-      'project analyst',
-      'implementation specialist',
-      'implementation coordinator',
-      'onboarding specialist',
-      'service delivery',
-      'delivery operations',
-      'launch operations',
-      'business operations',
-      'commercial operations',
-      'partner operations',
-      'marketplace operations',
-      'customer operations',
-      'revenue operations',
-      'operations specialist',
-      'operations coordinator',
-      'process improvement',
-      'product enablement',
-      'partnership coordinator',
-      'markets analyst',
-      'market analyst',
-    ],
-    responsibilityTerms: [
-      'cross-functional delivery',
-      'implementation',
-      'onboarding',
-      'service delivery',
-      'process improvement',
-      'marketplace operations',
-      'partner operations',
-      'product enablement',
-      'program delivery',
-      'programme delivery',
-    ],
-  },
-];
+import { parse } from 'yaml';
 
-export const TITLE_EXCLUDES = [
-  'software engineer',
-  'software developer',
-  'data scientist',
-  'bi specialist',
-  'business intelligence',
-  'machine learning',
-  'doctoral',
-  'postdoctoral',
-  'phd position',
-  'chief ',
-  'vice president',
-  'vp ',
-  'director',
-  'head of',
-];
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const EXAMPLE_PROFILE_PATH = path.join(ROOT, 'config', 'profile.example.yml');
+const requestedProfilePath = process.env.CAREER_PROFILE_PATH
+  ? path.resolve(process.cwd(), process.env.CAREER_PROFILE_PATH)
+  : path.join(ROOT, 'config', 'profile.yml');
 
-export const IC_TITLE_SIGNALS = [
-  'specialist',
-  'coordinator',
-  'associate',
-  'analyst',
-  'consultant',
-  'advisor',
-  'adviser',
-  'project lead',
-  'program lead',
-  'programme lead',
-];
+export const PROFILE_PATH = existsSync(requestedProfilePath)
+  ? requestedProfilePath
+  : EXAMPLE_PROFILE_PATH;
+export const PROFILE_IS_EXAMPLE = PROFILE_PATH === EXAMPLE_PROFILE_PATH;
 
-export const LOCATION_GROUPS = [
-  {
-    id: 'sweden',
-    label: 'Sweden',
-    score: 35,
-    terms: [
-      'sweden',
-      'stockholm',
-      'gothenburg',
-      'göteborg',
-      'malmö',
-      'malmo',
-      'lund',
-      'linköping',
-      'linkoping',
-      'uppsala',
-      'solna',
-      'västerås',
-      'vasteras',
-      'helsingborg',
-      'örebro',
-      'orebro',
-    ],
-  },
-  {
-    id: 'amsterdam',
-    label: 'Amsterdam',
-    score: 25,
-    terms: ['amsterdam'],
-  },
-  {
-    id: 'vienna',
-    label: 'Vienna',
-    score: 18,
-    terms: ['vienna', 'wien'],
-  },
-  {
-    id: 'eu',
-    label: 'Other EU / Europe-remote',
-    score: 13,
-    terms: [
-      'europe',
-      'european union',
-      ' eu ',
-      'emea',
-      'remote',
-      'netherlands',
-      'rotterdam',
-      'utrecht',
-      'austria',
-      'germany',
-      'berlin',
-      'hamburg',
-      'munich',
-      'münchen',
-      'denmark',
-      'copenhagen',
-      'finland',
-      'helsinki',
-      'norway',
-      'oslo',
-      'belgium',
-      'brussels',
-      'france',
-      'paris',
-      'spain',
-      'madrid',
-      'barcelona',
-      'portugal',
-      'lisbon',
-      'italy',
-      'milan',
-      'ireland',
-      'dublin',
-      'poland',
-      'warsaw',
-      'czech',
-      'prague',
-      'estonia',
-      'tallinn',
-      'latvia',
-      'riga',
-      'lithuania',
-      'vilnius',
-      'luxembourg',
-      'slovenia',
-      'slovakia',
-      'croatia',
-      'romania',
-      'bucharest',
-      'bulgaria',
-      'greece',
-      'athens',
-      'hungary',
-      'budapest',
-      'cyprus',
-      'malta',
-    ],
-  },
-];
+function readProfile() {
+  let profile;
+  try {
+    profile = parse(readFileSync(PROFILE_PATH, 'utf8'));
+  } catch (error) {
+    throw new Error(`Could not read career profile at ${PROFILE_PATH}: ${error.message}`);
+  }
+  if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
+    throw new Error(`Career profile must be a YAML object: ${PROFILE_PATH}`);
+  }
+  if (Number(profile.version) !== 1) {
+    throw new Error(`Career profile version must be 1: ${PROFILE_PATH}`);
+  }
+  return profile;
+}
 
-export const OBVIOUS_NON_EU_ONLY = [
-  'united states only',
-  'us only',
-  'usa only',
-  'canada only',
-  'latin america only',
-  'latam only',
-  'india only',
-  'australia only',
-  'new zealand only',
-  'apac only',
-];
+function asNumber(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
 
-export const UNSUPPORTED_LOCAL_LANGUAGES = [
-  'swedish',
-  'dutch',
-  'german',
-  'french',
-  'danish',
-  'norwegian',
-  'finnish',
-  'italian',
-  'spanish',
-  'portuguese',
-  'polish',
-  'czech',
-];
+function asString(value, fallback = '') {
+  const text = String(value ?? '').trim();
+  return text || fallback;
+}
 
-export const WTTJ_QUERIES = [
-  'product marketing',
-  'partner marketing',
-  'go to market',
-  'sustainability',
-  'circular economy',
-  'growth marketing',
-  'marketing operations',
-  'product operations',
-  'implementation specialist',
-  'service delivery',
-];
+function asList(value, label, { allowEmpty = false } = {}) {
+  if (!Array.isArray(value) || (!allowEmpty && value.length === 0)) {
+    throw new Error(`${label} must be ${allowEmpty ? 'a' : 'a non-empty'} YAML list in ${PROFILE_PATH}`);
+  }
+  return value.map((item) => asString(item)).filter(Boolean);
+}
+
+const profile = readProfile();
+const search = profile.search || {};
+const runtime = profile.runtime || {};
+const location = search.location || {};
+const languages = search.languages || {};
+const experience = search.experience || {};
+const manager = search.manager || {};
+const discovery = profile.discovery || {};
+
+export const LOOKBACK_HOURS = asNumber(search.lookback_hours, 12);
+export const REQUEST_TIMEOUT_MS = asNumber(runtime.request_timeout_ms, 12_000);
+export const DEFAULT_ATS_BOARDS_PER_SOURCE = asNumber(runtime.ats_boards_per_source, 400);
+export const DEFAULT_MAX_SCAN_MINUTES = asNumber(runtime.max_scan_minutes, 18);
+export const DEFAULT_MAX_PAGE_VERIFICATIONS = asNumber(runtime.max_page_verifications, 60);
+
+export const ROLE_FAMILIES = (search.role_families || []).map((family, index) => {
+  const prefix = `search.role_families[${index}]`;
+  return {
+    id: asString(family?.id),
+    label: asString(family?.label),
+    priority: asNumber(family?.priority, 3),
+    terms: asList(family?.terms, `${prefix}.terms`),
+    responsibilityTerms: asList(
+      family?.responsibility_terms,
+      `${prefix}.responsibility_terms`,
+      { allowEmpty: true },
+    ),
+  };
+});
+if (!ROLE_FAMILIES.length || ROLE_FAMILIES.some((family) => !family.id || !family.label)) {
+  throw new Error(`Every role family needs an id and label in ${PROFILE_PATH}`);
+}
+
+export const TITLE_EXCLUDES = asList(
+  search.title_excludes,
+  'search.title_excludes',
+  { allowEmpty: true },
+);
+export const IC_TITLE_SIGNALS = asList(
+  search.individual_contributor_title_signals,
+  'search.individual_contributor_title_signals',
+  { allowEmpty: true },
+);
+
+export const MANAGER_PREFERENCE = {
+  preferIndividualContributor: manager.prefer_individual_contributor !== false,
+  titlePenalty: asNumber(manager.title_penalty, 14),
+  peopleManagementPenalty: asNumber(manager.people_management_penalty, 24),
+  lowFitManagerFloor: asNumber(manager.low_fit_manager_floor, 64),
+};
+
+const coreYears = Math.max(0, asNumber(experience.core_years, 0));
+const totalYears = Math.max(
+  coreYears,
+  asNumber(experience.total_years_including_adjacent, coreYears),
+);
+export const EXPERIENCE_PROFILE = {
+  coreYears,
+  totalYears,
+  behavior: ['ignore', 'caution'].includes(experience.behavior)
+    ? experience.behavior
+    : 'caution',
+};
+
+export const HOME_LOCATION_GROUP_ID = asString(location.home_group_id);
+export const LOCATION_GROUPS = (location.groups || []).map((group, index) => {
+  const prefix = `search.location.groups[${index}]`;
+  return {
+    id: asString(group?.id),
+    label: asString(group?.label),
+    score: asNumber(group?.score, 0),
+    terms: asList(group?.terms, `${prefix}.terms`),
+  };
+});
+if (!LOCATION_GROUPS.length || LOCATION_GROUPS.some((group) => !group.id || !group.label)) {
+  throw new Error(`Every location group needs an id and label in ${PROFILE_PATH}`);
+}
+
+export const OBVIOUS_NON_EU_ONLY = asList(
+  location.obvious_out_of_scope_phrases,
+  'search.location.obvious_out_of_scope_phrases',
+  { allowEmpty: true },
+);
+export const NON_TARGET_COUNTRY_TERMS = asList(
+  location.non_target_country_terms,
+  'search.location.non_target_country_terms',
+  { allowEmpty: true },
+);
+export const GLOBAL_SCOPE_SIGNALS = asList(
+  location.global_scope_signals,
+  'search.location.global_scope_signals',
+  { allowEmpty: true },
+);
+
+export const UNSUPPORTED_LOCAL_LANGUAGES = asList(
+  languages.exclude_when_hard_required,
+  'search.languages.exclude_when_hard_required',
+  { allowEmpty: true },
+).map((language) => language.toLowerCase());
+
+export const WTTJ_QUERIES = asList(
+  discovery.welcome_to_the_jungle_queries,
+  'discovery.welcome_to_the_jungle_queries',
+);
 
 export const ATS_DIRECTORIES = {
   greenhouse: 'https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/greenhouse_companies.json',
@@ -375,4 +162,3 @@ export const ATS_DIRECTORIES = {
   ashby: 'https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/ashby_companies.json',
   workday: 'https://raw.githubusercontent.com/Feashliaa/job-board-aggregator/main/data/workday_companies.json',
 };
-

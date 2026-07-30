@@ -27,6 +27,15 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Validate private deployment
+        run: npm run doctor -- --deploy
+
+      - name: Run tests
+        run: npm test
+
       - name: Run scan and email digest
         run: node src/run.mjs --send
         env:
