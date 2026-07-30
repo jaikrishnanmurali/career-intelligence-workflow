@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-07-30T08:00:00.000Z",
+  "scanSummary": "Example only: 120 normalized postings checked; one role passed the configured filters.",
+  "jobsScanned": 120,
+  "sourceStats": [],
+  "sourceFailureCount": 0,
+  "freshnessCounts": {
+    "verified": 1,
+    "likely": 0,
+    "newly_discovered": 0
+  },
+  "recommendations": [
+    {
+      "url": "https://jobs.example.com/roles/partner-operations-specialist",
+      "company": "Example Company",
+      "title": "Partner Operations Specialist",
+      "location": "Example City, EU",
+      "fit": "Worth a look",
+      "score": 78,
+      "family": "Product operations / delivery",
+      "why": "Example role-family and location match.",
+      "cautions": "",
+      "freshness": "verified",
+      "postedAt": "2026-07-30T05:30:00.000Z",
+      "postedAtEvidence": "Example exact source timestamp",
+      "firstSeenAt": "2026-07-30T08:00:00.000Z",
+      "source": "example",
+      "boardKey": null
+    }
+  ],
+  "rejectedCount": 0,
+  "rejected": [],
+  "unverifiedDueToCap": 0,
+  "tokenUsage": 0
+}
+

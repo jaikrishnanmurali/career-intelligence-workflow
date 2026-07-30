@@ -1,0 +1,51 @@
+# Copy this file to .github/workflows/deep-job-scan.yml only in a private fork.
+# A live deployment commits its search state and recommendations to the repo.
+
+name: Scheduled career-intelligence scan
+
+on:
+  schedule:
+    - cron: "23 7,19 * * *"
+      timezone: "Europe/Stockholm"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: career-intelligence-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run scan and email digest
+        run: node src/run.mjs --send
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          CAREER_DIGEST_FROM: ${{ secrets.CAREER_DIGEST_FROM }}
+          CAREER_DIGEST_TO: ${{ secrets.CAREER_DIGEST_TO }}
+          ATS_BOARDS_PER_SOURCE: "400"
+          MAX_SCAN_MINUTES: "18"
+          MAX_PAGE_VERIFICATIONS: "60"
+
+      - name: Save private search state
+        run: |
+          git config user.name "career-intelligence-bot"
+          git config user.email "career-intelligence-bot@users.noreply.github.com"
+          git add -f state/state.json reports/latest.json
+          if git diff --cached --quiet; then
+            echo "No state changes to save."
+          else
+            git commit -m "chore: save scan state"
+            git push
+          fi
+

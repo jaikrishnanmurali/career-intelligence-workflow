@@ -1,0 +1,16 @@
+{
+  "name": "career-intelligence-workflow",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A configurable, zero-token job-discovery and email-digest workflow.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "scan": "node src/run.mjs",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
+
