@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
-import { buildDigest, sendDigest } from '../src/email.mjs';
+process.env.CAREER_PROFILE_PATH = fileURLToPath(
+  new URL('../config/profile.example.yml', import.meta.url),
+);
+
+const { buildDigest, sendDigest } = await import('../src/email.mjs');
 
 const report = {
   generatedAt: '2026-07-30T20:00:00.000Z',

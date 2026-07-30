@@ -1,12 +1,18 @@
 import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
-import {
+process.env.CAREER_PROFILE_PATH = fileURLToPath(
+  new URL('../config/profile.example.yml', import.meta.url),
+);
+
+const {
+  experienceSignal,
   familyFor,
   languageBlocker,
   locationFor,
   shortlistCandidates,
-} from '../src/ranking.mjs';
+} = await import('../src/ranking.mjs');
 
 const scanStartedAt = '2026-07-30T20:00:00.000Z';
 
@@ -115,4 +121,17 @@ test('recognizes common local-language requirement wording and removes weak mana
     source: 'test',
   }], { seenUrls: {} }, scanStartedAt);
   assert.equal(result.candidates.length, 0);
+});
+
+test('frames experience requirements as core, adjacent, or stretch', () => {
+  assert.deepEqual(
+    experienceSignal('At least 5 years of relevant professional experience.'),
+    { minimumYears: 5, band: 'core', penalty: 0, caution: '' },
+  );
+  const adjacent = experienceSignal('Minimum 6 years of product marketing experience.');
+  assert.equal(adjacent.band, 'adjacent');
+  assert.match(adjacent.caution, /within total experience/i);
+  const stretch = experienceSignal('8+ years of growth marketing experience required.');
+  assert.equal(stretch.band, 'stretch');
+  assert.ok(stretch.penalty > adjacent.penalty);
 });

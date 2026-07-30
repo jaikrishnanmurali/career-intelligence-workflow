@@ -1,0 +1,8 @@
+interface:
+  display_name: Career Intelligence
+  short_description: Configure and run privacy-first, zero-token job discovery.
+  brand_color: "#14B8A6"
+  default_prompt: Set up or run the Career Intelligence Workflow without submitting applications.
+
+policy:
+  allow_implicit_invocation: true

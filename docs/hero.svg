@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="460" viewBox="0 0 1200 460" role="img" aria-labelledby="title desc">
+  <title id="title">Career Intelligence Workflow</title>
+  <desc id="desc">A privacy-first pipeline that discovers, verifies, and recommends recent jobs with zero model tokens.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071A2B"/>
+      <stop offset="1" stop-color="#102D3D"/>
+    </linearGradient>
+    <linearGradient id="signal" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2DD4BF"/>
+      <stop offset="1" stop-color="#7DD3FC"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#020617" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="460" rx="28" fill="url(#bg)"/>
+  <g opacity="0.12" stroke="#A7F3D0">
+    <path d="M0 92H1200M0 184H1200M0 276H1200M0 368H1200"/>
+    <path d="M120 0V460M240 0V460M360 0V460M480 0V460M600 0V460M720 0V460M840 0V460M960 0V460M1080 0V460"/>
+  </g>
+  <text x="72" y="92" fill="#5EEAD4" font-family="Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="3">OPEN-SOURCE JOB DISCOVERY</text>
+  <text x="72" y="162" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="52" font-weight="700">Career Intelligence</text>
+  <text x="72" y="220" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="52" font-weight="700">Workflow</text>
+  <text x="72" y="268" fill="#CBD5E1" font-family="Arial, sans-serif" font-size="22">Deep job discovery. Traceable decisions. Private candidate data.</text>
+  <g transform="translate(72 316)">
+    <rect width="200" height="54" rx="27" fill="#0F766E"/>
+    <circle cx="28" cy="27" r="8" fill="#5EEAD4"/>
+    <text x="50" y="34" fill="#ECFEFF" font-family="Arial, sans-serif" font-size="18" font-weight="700">0 model tokens</text>
+  </g>
+  <g transform="translate(704 86)" filter="url(#shadow)">
+    <rect width="420" height="286" rx="24" fill="#F8FAFC"/>
+    <text x="30" y="45" fill="#0F172A" font-family="Arial, sans-serif" font-size="17" font-weight="700">TWICE-DAILY SIGNAL REPORT</text>
+    <g transform="translate(30 75)">
+      <circle cx="18" cy="22" r="18" fill="#CCFBF1"/>
+      <path d="M10 22l5 5 11-12" fill="none" stroke="#0F766E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="52" y="18" fill="#0F172A" font-family="Arial, sans-serif" font-size="17" font-weight="700">Discover broadly</text>
+      <text x="52" y="40" fill="#64748B" font-family="Arial, sans-serif" font-size="14">Feeds + employer ATS boards</text>
+    </g>
+    <path d="M48 121V145" stroke="url(#signal)" stroke-width="3" stroke-linecap="round"/>
+    <g transform="translate(30 145)">
+      <circle cx="18" cy="22" r="18" fill="#E0F2FE"/>
+      <path d="M10 22l5 5 11-12" fill="none" stroke="#0369A1" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="52" y="18" fill="#0F172A" font-family="Arial, sans-serif" font-size="17" font-weight="700">Verify evidence</text>
+      <text x="52" y="40" fill="#64748B" font-family="Arial, sans-serif" font-size="14">Freshness, language, location, expiry</text>
+    </g>
+    <path d="M48 191V215" stroke="url(#signal)" stroke-width="3" stroke-linecap="round"/>
+    <g transform="translate(30 215)">
+      <circle cx="18" cy="22" r="18" fill="#ECFDF5"/>
+      <path d="M10 22l5 5 11-12" fill="none" stroke="#15803D" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="52" y="18" fill="#0F172A" font-family="Arial, sans-serif" font-size="17" font-weight="700">Recommend selectively</text>
+      <text x="52" y="40" fill="#64748B" font-family="Arial, sans-serif" font-size="14">Ranked digest; no auto-apply</text>
+    </g>
+  </g>
+</svg>
