@@ -90,7 +90,12 @@ export function buildDigest(report) {
   return { subject, text, html };
 }
 
-export async function sendDigest(report, fetchImpl = fetch) {
+export async function sendDigest(report, options = {}) {
+  const optionValues = options && typeof options === 'object' ? options : {};
+  const fetchImpl = typeof options === 'function'
+    ? options
+    : (optionValues.fetchImpl || fetch);
+  const requestedIdempotencyKey = optionValues.idempotencyKey || null;
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.CAREER_DIGEST_FROM;
   const to = process.env.CAREER_DIGEST_TO;
@@ -98,7 +103,7 @@ export async function sendDigest(report, fetchImpl = fetch) {
     throw new Error('Resend is not fully configured.');
   }
   const digest = buildDigest(report);
-  const idempotencyKey = createHash('sha256')
+  const idempotencyKey = requestedIdempotencyKey || createHash('sha256')
     .update(`${report.generatedAt}\n${report.recommendations.map((role) => role.url).sort().join('\n')}`)
     .digest('hex');
   const response = await fetchImpl('https://api.resend.com/emails', {
@@ -122,6 +127,19 @@ export async function sendDigest(report, fetchImpl = fetch) {
     body = bodyText ? JSON.parse(bodyText) : {};
   } catch {
     body = { message: bodyText };
+  }
+  if (
+    requestedIdempotencyKey
+    && response.status === 409
+    && body.name === 'invalid_idempotent_request'
+  ) {
+    return {
+      digest,
+      result: {
+        id: `deduplicated:${idempotencyKey}`,
+        deduplicated: true,
+      },
+    };
   }
   if (!response.ok) {
     throw new Error(`Resend rejected the digest (${response.status}): ${body.message || 'unknown error'}`);

@@ -17,6 +17,7 @@ import { parse } from 'yaml';
 import { installIntoCareerOps } from '../bin/cli.mjs';
 import { integrateCareerOps } from '../scripts/integrate-career-ops.mjs';
 import { importCareerOpsProfile } from '../scripts/import-career-ops-profile.mjs';
+import { installWorkflow } from '../scripts/install-workflow.mjs';
 
 const SOURCE_ROOT = fileURLToPath(new URL('..', import.meta.url));
 
@@ -179,6 +180,28 @@ test('installer removes its staging directory after an incomplete package fails'
     );
     await assert.rejects(access(path.join(extensionsRoot, 'career-intelligence-workflow')));
     await assert.rejects(access(path.join(extensionsRoot, '.career-intelligence-workflow-installing')));
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+});
+
+
+test('workflow installer adds three guarded attempts per delivery slot', async () => {
+  const temp = await mkdtemp(path.join(os.tmpdir(), 'career-intelligence-workflow-'));
+  try {
+    const careerOpsRoot = path.join(temp, 'career-ops');
+    await createCareerOpsFixture(careerOpsRoot);
+
+    const destination = await installWorkflow(careerOpsRoot);
+    const workflow = await readFile(destination, 'utf8');
+    assert.equal((workflow.match(/timezone: "UTC"/g) || []).length, 6);
+    assert.match(workflow, /guard-only/);
+    assert.match(workflow, /schedule-guard\.mjs/);
+    assert.match(workflow, /queue: max/);
+    assert.match(workflow, /github.event.repository.default_branch/);
+    assert.match(workflow, /--slot/);
+
+    await assert.rejects(installWorkflow(careerOpsRoot), /Refusing to overwrite/);
   } finally {
     await rm(temp, { recursive: true, force: true });
   }

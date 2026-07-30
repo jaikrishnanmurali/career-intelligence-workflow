@@ -2,6 +2,8 @@
 
 GitHub Actions runs while the user's computer is off. The workflow belongs in the user's private Career Ops repository because it reads the private extension profile and commits recommendation state.
 
+The schedule uses three attempts for each morning and evening delivery slot. The later attempts are retries, not extra digests.
+
 ## Before enabling it
 
 From `career-ops/extensions/career-intelligence-workflow`:
@@ -55,27 +57,58 @@ CAREER_DIGEST_TO
 
 See [RESEND.md](RESEND.md) for the no-domain personal setup and the optional verified-domain setup.
 
-## What the workflow does
+## How the delivery guard works
 
-1. Checks out the private Career Ops repository.
-2. Installs the extension's locked dependencies.
-3. Verifies the Career Ops foundation and confirmed extension profile.
-4. Runs the extension tests.
-5. Performs the scan and sends the digest.
-6. Commits only the extension's saved state and latest report when changed.
+The example has two delivery slots. Each slot gets an initial attempt and two retries 20 and 40 minutes later:
 
-The example runs at minute 23 twice per day in `UTC`. Change the workflow timezone and hours to the user's confirmed schedule. Scheduled workflows can be delayed, so this is a twice-daily delivery target rather than a real-time guarantee.
+| Slot | Initial attempt | Retry 1 | Retry 2 |
+| --- | --- | --- | --- |
+| Morning | 07:23 | 07:43 | 08:03 |
+| Evening | 19:23 | 19:43 | 20:03 |
 
-## Test before relying on it
+The example timezone is `UTC`. If every workflow `timezone` field is changed to `Europe/Stockholm`, those become Stockholm wall-clock times. Keep the workflow timezone aligned with `runtime.timezone` in the private extension profile.
 
-1. Open the private repository's Actions tab.
+Every attempt:
+
+1. Checks out the repository's default branch so it sees the latest committed scan state.
+2. Reads the saved delivery history before deciding whether to scan.
+3. Skips the slot when a successful or deduplicated delivery is already recorded.
+4. Uses the same Resend idempotency key for that repository and slot.
+5. Records the slot, delivery status, and Resend result in private state after success.
+
+If an attempt fails before delivery, the next attempt can scan. If Resend accepted the email but the run failed before state was committed, the repeated idempotency key suppresses another email and lets the retry record the slot as deduplicated. Resend retains idempotency keys for 24 hours, well beyond the 40-minute retry window. GitHub concurrency queues the attempts and prevents them from scanning at the same time.
+
+Resend documents this behavior in [Idempotency Keys](https://resend.com/docs/dashboard/emails/idempotency-keys). GitHub documents default-branch scheduling, timezone behavior, and delayed starts in [Events that trigger workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
+
+The retries reduce missed deliveries caused by a delayed or failed workflow run. They cannot deliver when Actions is disabled, repository secrets are wrong, Resend rejects every request, or all three GitHub attempts fail.
+
+## Test the guard without scanning or emailing
+
+1. Open the private repository's **Actions** tab.
 2. Select **Scheduled Career Intelligence digest**.
-3. Run it manually.
-4. Confirm every step passes.
-5. Inspect the email's freshness labels and recommendation reasons.
-6. Confirm the commit changed only extension state and report files.
+3. Choose **Run workflow**.
+4. Set `mode` to `guard-only`.
+5. Start the workflow.
 
-Keep the recurring schedule only after this manual run succeeds.
+The guard step should complete, `should_run` should be false, and the validation, tests, scanner, email, and state-save steps should be skipped. The decision appears in the workflow summary.
+
+## Test one real delivery
+
+After the guard-only run passes:
+
+1. Run the workflow again with `mode` set to `run`.
+2. Confirm the scan and email steps pass.
+3. Inspect the email's freshness labels and recommendation reasons.
+4. Confirm the resulting commit changed only extension state and report files.
+5. Let the next scheduled retry start and confirm it skips a delivered slot.
+
+A manual `run` receives its own stable slot ID. Re-running the same GitHub run remains duplicate-safe.
+
+## Change the schedule
+
+Edit all six schedule entries together. Preserve the initial, +20 minute, and +40 minute pattern unless you intentionally choose another retry window. Set the same IANA timezone on every entry and in the extension profile.
+
+Scheduled workflows can still start late. The times are delivery targets, not real-time guarantees.
 
 ## Disable it
 

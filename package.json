@@ -1,6 +1,6 @@
 {
   "name": "career-intelligence-workflow",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Always-on job discovery and Resend email digests for Career Ops.",
   "type": "module",
@@ -38,8 +38,8 @@
     "automation"
   ],
   "files": [
-    ".agents/",
-    ".claude/",
+    ".agents/skills/",
+    ".claude/skills/",
     ".env.example",
     ".gitignore",
     "AGENTS.md",

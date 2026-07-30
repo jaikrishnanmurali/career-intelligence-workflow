@@ -40,7 +40,9 @@ The supported path is `extensions/career-intelligence-workflow`. If the folder w
 
 ## The schedule did not run exactly on time
 
-Scheduled GitHub workflows can be delayed. Run the workflow manually and confirm it exists on the default branch of the private repository.
+Scheduled GitHub workflows can be delayed. The installed workflow has an initial attempt and two retries for each delivery slot. Check all three attempts in the Actions tab.
+
+A later attempt marked as skipped is normal when an earlier attempt delivered the slot. If no attempt started, confirm Actions is enabled and the workflow exists on the default branch. Run `guard-only` to test the gate without scanning or emailing. If all three attempts ran and failed, inspect the first failing step; the retry guard does not repair invalid secrets or a persistent provider failure.
 
 ## Codex or Claude cannot find the skill
 

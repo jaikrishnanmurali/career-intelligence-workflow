@@ -30,7 +30,7 @@ This repository is an email and always-on discovery companion for Career Ops. Ca
 
 - Node.js 22 or newer is required by this extension.
 - Keep model SDKs and model calls out of `src/`.
-- Add tests for installer, profile import, freshness, ranking, privacy, and email changes.
+- Add tests for installer, profile import, freshness, ranking, privacy, schedule guards, delivery idempotency, and email changes.
 - Run `npm test`, `npm run doctor`, and a bounded `npm run smoke` before release.
 
 ## Attribution

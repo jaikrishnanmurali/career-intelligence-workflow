@@ -108,7 +108,7 @@ From the extension:
 npm run workflow:install -- --root ../..
 ```
 
-Then follow [AUTOMATION.md](AUTOMATION.md) to add secrets, run the workflow manually, inspect its email and saved state, and only then retain the recurring schedule.
+Then follow [AUTOMATION.md](AUTOMATION.md) to add secrets, run `guard-only` without scanning or emailing, test one deliberate delivery, inspect its saved state, and only then retain the recurring schedule.
 
 ## Updating
 

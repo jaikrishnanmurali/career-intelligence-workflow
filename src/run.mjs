@@ -24,6 +24,21 @@ const REPORT_PATH = path.join(ROOT, 'reports', 'latest.json');
 const PREVIEW_TEXT = path.join(ROOT, 'preview', 'latest.txt');
 const PREVIEW_HTML = path.join(ROOT, 'preview', 'latest.html');
 
+export function deliveryKeyFor(
+  slotId,
+  namespace = process.env.GITHUB_REPOSITORY || 'career-intelligence-workflow',
+) {
+  const safeNamespace = String(namespace)
+    .toLowerCase()
+    .replace(/[^a-z0-9._/-]+/g, '-')
+    .slice(0, 100) || 'career-intelligence-workflow';
+  const safeSlot = String(slotId || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .slice(0, 80);
+  return safeSlot ? `career-digest/${safeNamespace}/${safeSlot}` : null;
+}
+
 function defaultState() {
   return {
     version: 1,
@@ -76,7 +91,15 @@ function buildSummary(scan, recommendationCount, rejectedCount, freshnessCounts,
   ].join(' ');
 }
 
-function updateState(state, scan, report, evaluatedItems, resendId) {
+function updateState(
+  state,
+  scan,
+  report,
+  evaluatedItems,
+  resendId,
+  slotId,
+  deliveryStatus,
+) {
   const now = report.generatedAt;
   const seenUrls = { ...(state.seenUrls || {}) };
   for (const item of evaluatedItems) {
@@ -122,6 +145,8 @@ function updateState(state, scan, report, evaluatedItems, resendId) {
       recommendations: report.recommendations.length,
       rejected: report.rejectedCount,
       sourceFailures: report.sourceFailureCount,
+      slotId: slotId || null,
+      deliveryStatus: deliveryStatus || null,
       resendId: resendId || null,
     },
   ].slice(-60);
@@ -140,6 +165,7 @@ export async function run({
   dryRun = false,
   send = false,
   scanStartedAt = new Date().toISOString(),
+  slotId = null,
 } = {}) {
   await loadLocalEnv(path.join(ROOT, '.env'));
   const state = await readJson(STATE_PATH, defaultState());
@@ -157,6 +183,7 @@ export async function run({
   }, {});
   const report = {
     generatedAt: scanStartedAt,
+    slotId,
     scanSummary: buildSummary(
       scan,
       recommendations.length,
@@ -182,7 +209,9 @@ export async function run({
 
   let delivery = null;
   if (send && !dryRun) {
-    delivery = await sendDigest(report);
+    delivery = await sendDigest(report, {
+      idempotencyKey: deliveryKeyFor(slotId),
+    });
   }
 
   if (!dryRun) {
@@ -197,6 +226,10 @@ export async function run({
       report,
       evaluatedItems,
       delivery?.result?.id,
+      slotId,
+      delivery?.result?.deduplicated
+        ? 'deduplicated'
+        : (delivery ? 'accepted' : null),
     );
     await atomicWriteJson(STATE_PATH, nextState);
   }
@@ -210,9 +243,16 @@ const directRun = process.argv[1]
 if (directRun) {
   const dryRun = process.argv.includes('--dry-run');
   const shouldSend = process.argv.includes('--send');
-  run({ dryRun, send: shouldSend })
+  const slotFlagIndex = process.argv.indexOf('--slot');
+  const slotArgument = process.argv.find((argument) => argument.startsWith('--slot='));
+  const slotId = slotFlagIndex >= 0
+    ? process.argv[slotFlagIndex + 1]
+    : slotArgument?.slice('--slot='.length);
+  run({ dryRun, send: shouldSend, slotId: slotId || null })
     .then(({ report, delivery }) => {
-      const deliveryText = delivery?.result?.id ? ' Email delivered.' : '';
+      const deliveryText = delivery?.result?.deduplicated
+        ? ' Email already delivered for this slot; duplicate suppressed.'
+        : (delivery?.result?.id ? ' Email delivered.' : '');
       process.stdout.write(
         `Cloud scan complete: ${report.jobsScanned} jobs checked, ${report.recommendations.length} recommendations, 0 model tokens.${deliveryText}\n`,
       );

@@ -18,7 +18,7 @@ Translate ordinary answers into configuration. Ask in short rounds, covering onl
 3. Directly relevant experience and total experience including adjacent work.
 4. Location order, remote scope, and hard location exclusions.
 5. Languages that should block a role only when the posting makes them mandatory.
-6. Whether the default 12-hour lookback and twice-daily digest are acceptable, including the IANA timezone and delivery hours.
+6. Whether the default 12-hour lookback and twice-daily digest are acceptable, including the IANA timezone and delivery hours. Explain that each slot uses an initial attempt plus retries 20 and 40 minutes later.
 
 Do not ask for a Resend API key in chat.
 
