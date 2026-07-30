@@ -4,6 +4,7 @@
 
 <p align="center">
   <img alt="Career Ops companion" src="https://img.shields.io/badge/built_for-Career_Ops-2563EB">
+  <a href="https://github.com/jaikrishnanmurali/career-intelligence-workflow/actions/workflows/public-checks.yml"><img alt="Public project checks" src="https://github.com/jaikrishnanmurali/career-intelligence-workflow/actions/workflows/public-checks.yml/badge.svg"></a>
   <img alt="Zero model tokens" src="https://img.shields.io/badge/scheduled_runtime-0_model_tokens-0F766E">
   <img alt="Privacy first" src="https://img.shields.io/badge/deployment-private-0369A1">
   <img alt="Node 22 or newer" src="https://img.shields.io/badge/node-%3E%3D22-339933?logo=nodedotjs&logoColor=white">
@@ -80,6 +81,12 @@ When the user selects a recommendation, its URL and evidence summary return to C
 
 One broken source is recorded without stopping the other lanes.
 
+### Delivery retries without duplicate mail
+
+Each morning and evening slot has an initial GitHub Actions attempt plus retries 20 and 40 minutes later. Every attempt loads the latest committed state before deciding whether to scan. Once a slot is delivered, later attempts skip it. If Resend accepted an email but the workflow failed before saving state, every attempt still uses the same repository-and-slot idempotency key, so the retry cannot send a second copy.
+
+The retry window reduces missed deliveries; it cannot compensate for disabled Actions, invalid secrets, or all three attempts failing.
+
 ### Freshness stays honest
 
 - **Verified:** an exact source timestamp is inside the configured lookback.
@@ -103,7 +110,7 @@ npm run workflow:install -- --root ../..
 ```
 
 5. Commit the private profile, workflow, and generated package lock to the private repository.
-6. Run the workflow manually once before relying on its schedule.
+6. Run `guard-only` once, then run one deliberate delivery before relying on the schedule.
 
 See [the automation guide](docs/AUTOMATION.md) for the exact commands and checks.
 

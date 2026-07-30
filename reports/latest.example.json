@@ -1,5 +1,6 @@
 {
   "generatedAt": "2026-07-30T08:00:00.000Z",
+  "slotId": "2026-07-30-morning",
   "scanSummary": "Example only: 120 normalized postings checked; one role passed the configured filters.",
   "jobsScanned": 120,
   "sourceStats": [],

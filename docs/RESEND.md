@@ -70,6 +70,8 @@ npm run scan -- --send
 
 If you use `onboarding@resend.dev`, `CAREER_DIGEST_TO` must be the email associated with the Resend account. With a verified domain, the sender must use that domain.
 
+Scheduled retries reuse one idempotency key for the repository and delivery slot. Do not add an attempt number or current timestamp to that key; its stability is what prevents duplicate mail after an ambiguous or partially saved delivery.
+
 ## Add GitHub Actions secrets
 
 In the private Career Ops repository, add exactly:

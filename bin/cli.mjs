@@ -19,8 +19,8 @@ import { importCareerOpsProfile } from '../scripts/import-career-ops-profile.mjs
 const SOURCE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const EXTENSION_NAME = 'career-intelligence-workflow';
 const DISTRIBUTION_ENTRIES = [
-  '.agents',
-  '.claude',
+  '.agents/skills',
+  '.claude/skills',
   '.env.example',
   'AGENTS.md',
   'CLAUDE.md',

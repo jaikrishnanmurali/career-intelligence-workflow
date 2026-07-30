@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+.claude/settings.local.json
 config/profile.yml
 node_modules/
 preview/

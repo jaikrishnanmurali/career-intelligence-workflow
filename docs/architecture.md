@@ -55,6 +55,8 @@ Imported data is insufficient for a safe scan, so the draft remains `configured:
 
 Feeds and employer boards can throttle, fail, or change shape. Source failures are recorded while remaining lanes continue. Runtime, board count, and live-page verification are bounded.
 
+Delivery slots use an initial GitHub Actions attempt and two delayed retries. Each attempt checks out the latest default-branch state before the guard runs. Saved slot history stops later scans after delivery; a stable Resend idempotency key protects the same slot when delivery succeeded but the state commit did not.
+
 ## Zero-model runtime
 
 The scheduled path consists of Node.js modules, YAML, JSON state, GitHub Actions, and the Resend HTTPS API. There is no model SDK or model request in `src/`.
