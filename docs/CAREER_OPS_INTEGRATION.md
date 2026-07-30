@@ -1,120 +1,55 @@
-# Career Ops integration
+# How Career Intelligence uses Career Ops
 
-Career Intelligence can run alone. Its Career Ops integration is for users who want the scanner to feed selected jobs into Career Ops' existing evaluation and CV-tailoring workflow.
+Career Ops is the required foundation. This extension adds unattended discovery and email delivery without recreating its candidate or application system.
 
-This is a companion relationship, not a merged codebase. Career Intelligence owns discovery and freshness evidence. Career Ops owns its evaluation, tracker, and application materials.
+## Source-of-truth split
 
-## Why the projects stay separate
+Career Ops owns:
 
-Making Career Ops a mandatory runtime dependency would reduce setup work at first, but it would tie every scanner release to another project's directory structure and update cycle. The companion layout gives Career Ops users a clean handoff while preserving a small standalone product for everyone else.
+- identity and contact data;
+- CV and evidence;
+- target roles and career narrative;
+- evaluation, tailoring, tracker, and application workflow.
 
-## Install Career Ops first
+Career Intelligence owns:
 
-Follow the current instructions in the [Career Ops repository](https://github.com/santifer/career-ops). Its documented quick start currently begins with:
+- scan-specific adjacent titles and responsibility terms;
+- hard scan exclusions and language blockers;
+- ordered search locations;
+- experience and manager ranking cautions;
+- freshness evidence, deduplication, report state, and Resend delivery.
 
-```bash
-npx @santifer/career-ops init
-```
+## Import behavior
 
-Complete its own onboarding before adding this scanner.
+During installation, `scripts/import-career-ops-profile.mjs` reads Career Ops `config/profile.yml` and creates an extension draft.
 
-## Clone the companion
+It imports role names, archetype fit, city, country, and authorized locations. It does not copy the candidate's name, email, phone number, CV text, narrative, or proof points. The generated draft says `configured: false` until the setup conversation fills and confirms the missing scan rules.
 
-From the Career Ops root:
+The deterministic importer is intentionally conservative. It does not infer experience, unsupported languages, manager preference, or adjacent job titles from silence.
 
-```bash
-mkdir -p extensions
-git clone https://github.com/jaikrishnanmurali/career-intelligence-workflow.git extensions/career-intelligence-workflow
-cd extensions/career-intelligence-workflow
-npm install
-npm run init
-```
+## Skill adapters
 
-On Windows PowerShell, `New-Item -ItemType Directory -Force extensions` can replace `mkdir -p extensions`.
-
-The expected layout is:
-
-```text
-career-ops/
-├── AGENTS.md
-├── modes/
-├── .agents/
-├── .claude/
-└── extensions/
-    └── career-intelligence-workflow/
-        ├── AGENTS.md
-        ├── config/
-        ├── src/
-        └── modes/
-```
-
-## Install the skill adapters
-
-Run this from `extensions/career-intelligence-workflow`:
-
-```bash
-npm run integrate:career-ops -- --root ../..
-```
-
-The installer verifies the Career Ops root, calculates the relative extension path, and adds:
+The installer adds namespaced adapters at:
 
 ```text
 career-ops/.agents/skills/career-intelligence/SKILL.md
 career-ops/.claude/skills/career-intelligence/SKILL.md
 ```
 
-It does not edit Career Ops' root `AGENTS.md`, modes, CV, tracker, or templates. Running it again is idempotent. If a different skill already occupies either destination, the installer stops instead of overwriting it. Use `--force` only after reviewing the existing file.
+Each adapter points back to the extension. It does not modify Career Ops root instructions, modes, CV, tracker, or templates. A different existing adapter is never overwritten without an explicit reviewed force operation.
 
-## Configure and test
+## Handoff
 
-Still inside the extension:
+1. Career Intelligence discovers and emails recommendations.
+2. The user chooses a role.
+3. The agent passes its URL and freshness/fit evidence to Career Ops.
+4. Career Ops evaluates the role and decides what later artifacts to prepare.
+5. The user remains responsible for the final application.
 
-```bash
-npm run doctor
-npm test
-npm run smoke
-```
+Career Intelligence never creates a tailored CV, adds a tracker row, fills a form, clicks Apply, or contacts an employer.
 
-Configure Resend and scheduling in the extension's private deployment, not in the Career Ops upstream source. See [RESEND.md](RESEND.md) and [AUTOMATION.md](AUTOMATION.md).
+## Why the scheduled scanner remains separate
 
-## Use the handoff
+Career Ops includes interactive scanning and local scheduling recipes. This extension keeps a separate bounded scanner because its job is unattended cloud delivery: broad rolling ATS coverage, exact-versus-weak freshness labels, saved email state, and a Resend digest. The scanner still starts from the Career Ops profile and returns selected jobs to the Career Ops pipeline.
 
-In Codex:
-
-```text
-$career-intelligence Run a deep scan and summarize the recommendations.
-```
-
-In Claude Code:
-
-```text
-/career-intelligence Run a deep scan and summarize the recommendations.
-```
-
-After reviewing the shortlist, tell the agent which role you chose. The integration passes that job URL and its evidence summary to Career Ops. Career Ops then follows its own evaluation and CV-tailoring rules.
-
-Career Intelligence must not:
-
-- create or modify a tailored CV;
-- add an application to the Career Ops tracker;
-- fill or submit a form;
-- contact an employer.
-
-Those boundaries keep discovery auditable and preserve the user's final decision.
-
-## Update
-
-Update the extension from inside its directory:
-
-```bash
-git pull
-npm install
-npm test
-npm run integrate:career-ops -- --root ../..
-```
-
-Review release changes before pulling into a live private deployment. The ignored `config/profile.yml`, `.env`, state, and reports remain local.
-
-## Attribution and independence
-
-Career Ops is an MIT-licensed open-source project created by Santiago Fernández de Valderrama. Career Intelligence Workflow is independently maintained by Jai Krishnan Murali and is not affiliated with or endorsed by the Career Ops maintainer. The integration copies only this project's namespaced adapter instructions; it does not redistribute Career Ops code.
+This boundary keeps the email run deterministic and prevents a twice-daily schedule from spending model tokens on full evaluations.

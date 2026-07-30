@@ -1,79 +1,57 @@
-# Codex and Claude Code
+# Codex and Claude inside Career Ops
 
-Codex and Claude Code are optional interfaces for onboarding, running commands, and explaining results. The scheduled scanner does not invoke either product and does not call a model API.
+Start the agent from the Career Ops root, not from the extension directory. This ensures Career Ops remains the governing workflow and the extension can reuse its profile, CV, and evidence rules.
 
-## Shared design
+## Installed adapters
 
-The canonical workflow lives at:
+The installer creates:
 
 ```text
 .agents/skills/career-intelligence/SKILL.md
+.claude/skills/career-intelligence/SKILL.md
 ```
 
-Four mode files keep task instructions focused:
-
-- `modes/onboard.md`
-- `modes/scan.md`
-- `modes/explain.md`
-- `modes/integrate-career-ops.md`
-
-The root `AGENTS.md` contains durable project rules. It is intentionally concise so privacy, freshness, test, and no-auto-apply boundaries are always present without loading every procedure.
+Both adapters point to the canonical extension skill under `extensions/career-intelligence-workflow/.agents/skills/`. The adapter is namespaced and does not replace the Career Ops router.
 
 ## Codex
 
-Codex reads repository `AGENTS.md` files and discovers repository skills under `.agents/skills`. Start Codex from the repository root:
+From the Career Ops root:
 
 ```bash
 codex
 ```
 
-Invoke the skill explicitly:
+Example requests:
 
 ```text
-$career-intelligence Onboard my search profile.
-$career-intelligence Run a smoke scan and explain the freshness labels.
-$career-intelligence Install this as a Career Ops companion.
+Use $career-intelligence to set up my 12-hour job digest.
+Run the Career Intelligence no-email smoke scan.
+Explain why this recommendation was labelled newly discovered.
+Hand this selected URL to the Career Ops evaluation pipeline.
 ```
 
-Natural-language requests that match the skill description can also activate it. OpenAI's current documentation for repository instructions and skills:
-
-- <https://learn.chatgpt.com/docs/agent-configuration/agents-md.md>
-- <https://learn.chatgpt.com/docs/build-skills.md>
+If explicit skill invocation is unavailable, ask for the same task in plain language.
 
 ## Claude Code
 
-Claude Code reads `CLAUDE.md` and project skills under `.claude/skills`. Start it from the repository root:
+From the Career Ops root:
 
 ```bash
 claude
 ```
 
-Invoke:
+Example:
 
 ```text
-/career-intelligence Onboard my search profile.
-/career-intelligence Run a smoke scan and explain the results.
+/career-intelligence Set up my 12-hour job digest.
 ```
 
-The Claude-specific skill is a thin wrapper around the canonical shared skill, preventing two instruction sets from drifting. Anthropic's current skill documentation is at <https://code.claude.com/docs/en/slash-commands>.
+## Agent boundary
 
-## What “zero-token” covers
+Codex or Claude may read Career Ops files during onboarding and explanation. They may write the extension profile only after showing the interpreted rules and receiving confirmation.
 
-Zero-token refers to the automated scanner implemented in `src/` and run by GitHub Actions. It performs matching, gates, ranking, deduplication, report generation, and email delivery with ordinary code.
+The agent must not ask for an API key in chat, send email without confirmation, install a workflow without confirmation, tailor a CV through the extension, edit the Career Ops tracker, or submit an application.
 
-A conversation with Codex or Claude Code may use the user's normal product allowance. That interaction is optional and is not executed by the scheduled workflow.
+## Zero-token boundary
 
-## Why there is one skill, not a multi-agent swarm
-
-Discovery, filtering, and email delivery are deterministic software steps. Splitting them across model agents would add cost and make a recommendation harder to reproduce. One focused skill is enough to help a user configure and inspect the software while keeping the runtime decision path visible in code and tests.
-
-## Safety
-
-The skill must never:
-
-- ask the user to paste an API key into chat;
-- commit a real profile or `.env` file;
-- enable a live schedule without confirmation;
-- send an email without confirmation;
-- call a recommendation “verified fresh” without exact timestamp evidence;
-- submit an application or contact an employer.
+Agent onboarding uses the user's normal Codex or Claude allowance. The scheduled scanner is different: it runs ordinary Node.js code in GitHub Actions and uses zero model API tokens.

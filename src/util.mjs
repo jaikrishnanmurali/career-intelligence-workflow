@@ -7,7 +7,7 @@ import {
 } from 'node:fs/promises';
 import path from 'node:path';
 
-import { REQUEST_TIMEOUT_MS } from './config.mjs';
+import { REQUEST_TIMEOUT_MS, TIME_ZONE } from './config.mjs';
 
 export function normalizeText(value) {
   return String(value || '')
@@ -87,24 +87,27 @@ export function isWithinHours(value, endValue, hours) {
   return time >= end - Number(hours) * 3_600_000 && time <= end + 5 * 60_000;
 }
 
+export function formatLocalTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unknown time';
+  return date.toLocaleString('en-SE', {
+    timeZone: TIME_ZONE,
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+}
+
+// Backward-compatible names for reports created before configurable timezones.
+export const formatStockholm = formatLocalTime;
+
 export function sameStockholmDate(a, b) {
-  const formatter = new Intl.DateTimeFormat('sv-SE', {
-    timeZone: 'Europe/Stockholm',
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TIME_ZONE,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   });
   return formatter.format(new Date(a)) === formatter.format(new Date(b));
-}
-
-export function formatStockholm(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Unknown time';
-  return date.toLocaleString('en-SE', {
-    timeZone: 'Europe/Stockholm',
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
 }
 
 export async function fetchWithTimeout(url, options = {}) {
@@ -119,7 +122,7 @@ export async function fetchWithTimeout(url, options = {}) {
       signal: controller.signal,
       headers: {
         accept: 'application/json,text/html;q=0.9,*/*;q=0.8',
-        'user-agent': 'CareerIntelligenceWorkflow/1.0 (+public reference implementation)',
+        'user-agent': 'CareerIntelligenceWorkflow/1.1 (+Career Ops email companion)',
         ...(options.headers || {}),
       },
     });

@@ -1,137 +1,40 @@
 # Complete setup
 
-This guide takes a new user from the public template to a private, tested scanner. No Codex or Claude subscription is required to run scheduled scans.
+This guide adds a private, twice-daily email digest to an existing Career Ops workspace. Career Intelligence is not a replacement for Career Ops.
 
-## What you need
+## Prerequisites
 
-- A GitHub account.
-- Node.js 22 or newer for local setup and testing.
-- Internet access to the configured public job sources.
-- A Resend account only if you want email delivery.
+- Career Ops installed and onboarded with `config/profile.yml` and `cv.md`.
+- Node.js 22 or newer for this extension.
+- Git and internet access.
+- Codex or Claude for conversational setup.
+- A Resend account only when email is enabled.
+- A private GitHub repository only when cloud scheduling is enabled.
 
-The scanner itself has no model dependency.
+## 1. Install inside Career Ops
 
-## 1. Create a private deployment
-
-Open the public repository and select **Use this template**, then **Create a new repository**. Choose **Private** visibility. GitHub's template feature creates a new repository without linking its commit history to the template.
-
-Template: <https://github.com/jaikrishnanmurali/career-intelligence-workflow/generate>
-
-Clone your new private repository and enter it:
+From the Career Ops root:
 
 ```bash
-git clone https://github.com/YOUR-NAME/YOUR-PRIVATE-REPOSITORY.git
-cd YOUR-PRIVATE-REPOSITORY
+npx --yes github:jaikrishnanmurali/career-intelligence-workflow init
 ```
 
-If you only want to examine the public example, you can clone the public source directly. Do not put a real profile or live schedule in that public clone.
+The installer refuses to continue when Career Ops onboarding is incomplete or when `extensions/career-intelligence-workflow` already exists. It does not overwrite an active extension.
 
-## 2. Install and initialize
+Expected result:
 
-```bash
-npm install
-npm run init
+```text
+career-ops/
+  .agents/skills/career-intelligence/SKILL.md
+  .claude/skills/career-intelligence/SKILL.md
+  extensions/career-intelligence-workflow/
 ```
 
-Initialization creates two ignored files:
+No email is sent and no workflow is enabled.
 
-- `config/profile.yml`, copied from the fictional example;
-- `.env`, copied from the empty environment template.
+## 2. Complete conversational onboarding
 
-Existing files are preserved. The command never overwrites them.
-
-## 3. Edit the search profile
-
-Open `config/profile.yml` in any text editor. YAML uses indentation, so keep the existing two-space structure and do not use tabs.
-
-### Role families
-
-Each family has:
-
-- `id`: a stable lowercase identifier;
-- `label`: the name shown in reports;
-- `priority`: a relative weight, normally between 1 and 5;
-- `terms`: title phrases that identify the family;
-- `responsibility_terms`: description signals used to confirm adjacent titles.
-
-Use specific phrases such as `partner enablement` or `lifecycle marketing`. Avoid single generic words such as `business` because they create false positives.
-
-### Title exclusions
-
-`title_excludes` is for roles that should never enter the shortlist. Use it for unrelated technical or senior-leadership titles. Do not put `manager` here if some manager-titled individual-contributor roles may still be relevant; the manager preference can down-rank them instead.
-
-### Experience
-
-Set:
-
-```yaml
-experience:
-  core_years: 5
-  total_years_including_adjacent: 7
-  behavior: caution
-```
-
-The scanner does not reject a role merely because its text requests more years. Requirements within core experience get no caution. Requirements above core but within total experience receive a small caution. Requirements above total experience become a stronger stretch signal.
-
-### Locations
-
-Create groups in priority order and give each a score. Terms can include countries, cities, regional labels, and remote-work phrases. `home_group_id` identifies the group where work-authorization wording should be interpreted as local rather than relocation.
-
-Keep country terms specific. A generic `remote` term can match roles that are not employable from your country, so the live-page caution still asks the user to confirm eligibility.
-
-### Languages
-
-List only languages that should block a role when the posting makes them mandatory:
-
-```yaml
-languages:
-  exclude_when_hard_required:
-    - german
-    - french
-```
-
-A posting that calls a language “helpful,” “preferred,” or “nice to have” is not rejected by the general language rule.
-
-### Runtime budget
-
-The `runtime` section controls source breadth and live-page verification. The defaults suit a twice-daily GitHub Actions run. Lower `ats_boards_per_source` and `max_page_verifications` for quick local tests.
-
-## 4. Validate
-
-```bash
-npm run doctor
-npm test
-npm run smoke
-```
-
-Expected behavior:
-
-- `doctor` reports `config/profile.yml`, not the example file;
-- tests complete without a failure;
-- the smoke scan is bounded and says that no email was sent.
-
-A smoke scan can return zero recommendations. That is valid when no role survives the configured evidence gates.
-
-## 5. Add email
-
-Follow [RESEND.md](RESEND.md). Keep the API key out of the profile and Git history.
-
-For a local email test:
-
-```bash
-npm run doctor -- --email
-npm run scan -- --send
-```
-
-The second command performs a real scan and sends the resulting digest. Run it only when you intend to send an email.
-
-## 6. Enable cloud scheduling
-
-Follow [AUTOMATION.md](AUTOMATION.md). A computer does not need to stay online when GitHub Actions runs the private deployment.
-
-## 7. Optional agent setup
-
-Codex and Claude Code discover the project instructions and skills from the repository. Start either CLI in the repository root after completing `npm install`:
+Start Codex or Claude from the Career Ops root:
 
 ```bash
 codex
@@ -139,8 +42,74 @@ codex
 claude
 ```
 
-Ask to onboard Career Intelligence, run a smoke scan, explain a recommendation, or install the Career Ops companion. See [AGENT_INTEGRATIONS.md](AGENT_INTEGRATIONS.md).
+Ask:
 
-## Updating later
+```text
+Set up my 12-hour Career Intelligence job digest.
+```
 
-Review upstream changes before pulling them into a private deployment. Keep your ignored `config/profile.yml` and `.env`; ordinary pulls do not replace them. Run `npm install`, `npm test`, and `npm run doctor` after an update.
+The installer has already created an unconfirmed draft from Career Ops. The agent reads the Career Ops profile and CV, asks only for missing scan-specific rules, and shows a plain-language summary before writing.
+
+The extension profile contains search terms and eligibility rules. It must not contain the candidate's email, phone number, full CV, narrative, or proof points.
+
+## 3. Validate without email
+
+The agent runs these commands from the extension:
+
+```bash
+npm run doctor -- --career-ops-root ../..
+npm test
+npm run smoke
+```
+
+Expected behavior:
+
+- diagnostics detect the Career Ops root;
+- the extension profile says `configured: true`;
+- all tests pass;
+- the smoke run is bounded and explicitly says no email was sent.
+
+Zero recommendations can be a valid result. Review source coverage and rejection reasons before widening rules.
+
+## 4. Configure Resend
+
+Follow [RESEND.md](RESEND.md). Do not put the key in Career Ops YAML, the extension profile, an issue, or an agent conversation.
+
+Validate the local secret without printing it:
+
+```bash
+npm run doctor -- --email --career-ops-root ../..
+```
+
+Send one email only when intended:
+
+```bash
+npm run scan -- --send
+```
+
+## 5. Move the Career Ops workspace to a private GitHub repository
+
+The live profile, CV, state, report, and workflow reveal job-search activity. Confirm the destination repository is private before pushing.
+
+The extension profile is ignored by default. Add it deliberately only to the private repository:
+
+```bash
+git add -f extensions/career-intelligence-workflow/config/profile.yml
+git add extensions/career-intelligence-workflow/package-lock.json
+```
+
+Do not commit `.env`.
+
+## 6. Install and test the workflow
+
+From the extension:
+
+```bash
+npm run workflow:install -- --root ../..
+```
+
+Then follow [AUTOMATION.md](AUTOMATION.md) to add secrets, run the workflow manually, inspect its email and saved state, and only then retain the recurring schedule.
+
+## Updating
+
+The installer does not overwrite an existing extension. Until an automated updater is released, review upstream changes and update the extension deliberately. Preserve the private profile, `.env`, state, and reports, then rerun tests and diagnostics.

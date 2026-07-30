@@ -52,6 +52,7 @@ function asList(value, label, { allowEmpty = false } = {}) {
 }
 
 const profile = readProfile();
+export const PROFILE_IS_CONFIGURED = profile.configured === true;
 const search = profile.search || {};
 const runtime = profile.runtime || {};
 const location = search.location || {};
@@ -65,6 +66,7 @@ export const REQUEST_TIMEOUT_MS = asNumber(runtime.request_timeout_ms, 12_000);
 export const DEFAULT_ATS_BOARDS_PER_SOURCE = asNumber(runtime.ats_boards_per_source, 400);
 export const DEFAULT_MAX_SCAN_MINUTES = asNumber(runtime.max_scan_minutes, 18);
 export const DEFAULT_MAX_PAGE_VERIFICATIONS = asNumber(runtime.max_page_verifications, 60);
+export const TIME_ZONE = asString(runtime.timezone, 'UTC');
 
 export const ROLE_FAMILIES = (search.role_families || []).map((family, index) => {
   const prefix = `search.role_families[${index}]`;

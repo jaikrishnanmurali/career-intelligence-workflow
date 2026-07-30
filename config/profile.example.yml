@@ -1,15 +1,18 @@
-# Fictional example profile. Copy this file to profile.yml and edit the copy.
-# Keep profile.yml in a private repository.
+# Fictional starter used for tests and installation previews.
+# The installer creates a separate private draft from Career Ops.
 version: 1
+configured: false
+
+career_ops:
+  source: ../../config/profile.yml
+  note: This public example contains no real candidate data.
 
 search:
   lookback_hours: 12
 
-  # Experience is a ranking caution, never an automatic rejection.
-  # "core" means directly relevant experience. "total" may include adjacent work.
   experience:
-    core_years: 5
-    total_years_including_adjacent: 7
+    core_years: 3
+    total_years_including_adjacent: 6
     behavior: caution
 
   manager:
@@ -19,304 +22,87 @@ search:
     low_fit_manager_floor: 64
 
   role_families:
-    - id: product-partner-marketing
-      label: Product / partner marketing
+    - id: customer-success
+      label: Customer success
       priority: 4
       terms:
-        - product marketing
-        - product marketer
-        - partner marketing
-        - channel marketing
-        - ecosystem marketing
-        - alliance marketing
-        - go-to-market
-        - go to market
-        - gtm
-        - market development
-        - commercial marketing
-        - customer marketing
-        - solutions marketing
-        - portfolio marketing
-        - partner enablement
-        - sales enablement
-        - commercial enablement
-        - customer insights
-        - market intelligence
+        - customer success
+        - customer onboarding
+        - client success
       responsibility_terms:
-        - positioning
-        - messaging
-        - product launch
-        - go-to-market
-        - sales enablement
-        - partner enablement
-        - market research
-        - customer insight
-
-    - id: sustainability-circularity
-      label: Sustainability / circularity
-      priority: 3.8
-      terms:
-        - sustainability
-        - sustainability specialist
-        - sustainability coordinator
-        - sustainability analyst
-        - sustainability advisor
-        - circular economy
-        - circularity
-        - circular business
-        - resource efficiency
-        - recommerce
-        - reverse logistics
-        - ecodesign
-        - eco-design
-        - product sustainability
-        - sustainable product
-        - climate program
-        - climate programme
-        - impact specialist
-        - lifecycle specialist
-        - life cycle specialist
-        - environmental specialist
-      responsibility_terms:
-        - circular economy
-        - circular business
-        - resource efficiency
-        - reuse
-        - lifecycle information
-        - life cycle assessment
-        - ecodesign
-        - product sustainability
-        - sustainability program
-        - sustainability programme
-
-    - id: growth-marketing
-      label: Growth marketing
-      priority: 3.4
-      terms:
-        - growth marketing
-        - growth marketer
-        - marketing specialist
-        - digital marketing specialist
-        - marketing coordinator
-        - content marketing
-        - growth specialist
-        - lifecycle marketing
-        - crm specialist
-        - retention marketing
-        - engagement marketing
-        - acquisition marketing
-        - demand generation
-        - digital growth
-        - conversion specialist
-        - campaign operations
-        - marketing operations
-        - marketing automation
-        - performance marketing
-        - marketing analyst
-        - growth analyst
-      responsibility_terms:
-        - acquisition
-        - retention
-        - activation
-        - conversion
-        - customer journey
-        - marketing automation
-        - campaign operations
-        - experimentation
-        - seo
-
-    - id: product-operations-delivery
-      label: Product operations / delivery
-      priority: 3
-      terms:
-        - product operations
-        - product ops
-        - product specialist
-        - product coordinator
-        - program coordinator
-        - programme coordinator
-        - project coordinator
-        - program specialist
-        - programme specialist
-        - project specialist
-        - implementation specialist
-        - implementation coordinator
-        - onboarding specialist
-        - service delivery
-        - delivery operations
-        - launch operations
-        - business operations
-        - commercial operations
-        - partner operations
-        - marketplace operations
-        - customer operations
-        - operations specialist
-        - operations coordinator
-        - process improvement
-        - product enablement
-      responsibility_terms:
-        - cross-functional delivery
-        - implementation
         - onboarding
-        - service delivery
-        - process improvement
-        - marketplace operations
-        - partner operations
-        - product enablement
+        - adoption
+        - customer journey
+        - retention
+
+    - id: community-operations
+      label: Community operations
+      priority: 3.2
+      terms:
+        - community operations
+        - community specialist
+        - member operations
+      responsibility_terms:
+        - community programs
+        - member experience
         - program delivery
-        - programme delivery
 
   title_excludes:
     - software engineer
-    - software developer
     - data scientist
-    - machine learning
-    - doctoral
-    - postdoctoral
-    - phd position
-    - chief
-    - vice president
-    - director
-    - head of
+    - chief executive officer
 
   individual_contributor_title_signals:
     - specialist
     - coordinator
-    - associate
     - analyst
-    - consultant
-    - advisor
-    - adviser
-    - project lead
-    - program lead
-    - programme lead
 
   location:
-    # Used only for work-authorization cautions. Leave blank if no group is "home".
-    home_group_id: sweden
+    home_group_id: ireland
     groups:
-      - id: sweden
-        label: Sweden
+      - id: ireland
+        label: Ireland
         score: 35
         terms:
-          - sweden
-          - stockholm
-          - gothenburg
-          - göteborg
-          - malmö
-          - malmo
-          - lund
-          - linköping
-          - linkoping
-          - uppsala
-      - id: amsterdam
-        label: Amsterdam
-        score: 25
-        terms:
-          - amsterdam
-      - id: vienna
-        label: Vienna
+          - ireland
+          - dublin
+          - cork
+      - id: europe-remote
+        label: Europe remote
         score: 18
-        terms:
-          - vienna
-          - wien
-      - id: eu
-        label: Other EU / Europe-remote
-        score: 13
         terms:
           - europe
           - european union
-          - eu
           - emea
           - remote
-          - netherlands
-          - austria
-          - germany
-          - denmark
-          - finland
-          - norway
-          - belgium
-          - france
-          - spain
-          - portugal
-          - italy
-          - ireland
-          - poland
-          - czech
-          - estonia
-          - latvia
-          - lithuania
-          - luxembourg
-          - slovenia
-          - slovakia
-          - croatia
-          - romania
-          - bulgaria
-          - greece
-          - hungary
-          - cyprus
-          - malta
     obvious_out_of_scope_phrases:
       - united states only
-      - us only
-      - usa only
       - canada only
-      - latin america only
-      - latam only
-      - india only
-      - australia only
-      - new zealand only
-      - apac only
     non_target_country_terms:
       - united states
-      - usa
       - canada
-      - india
       - australia
-      - new zealand
-      - singapore
-      - philippines
-      - latin america
-      - latam
-      - apac
     global_scope_signals:
       - worldwide
       - global
       - europe
-      - european union
       - emea
+      - remote
 
-  # A language is blocked only when the job states it as mandatory.
-  # Remove languages you can work in.
+  # A language is blocked only when the posting states it as mandatory.
   languages:
     exclude_when_hard_required:
-      - swedish
-      - dutch
       - german
       - french
-      - danish
-      - norwegian
-      - finnish
-      - italian
-      - spanish
-      - portuguese
-      - polish
-      - czech
 
 discovery:
   welcome_to_the_jungle_queries:
-    - product marketing
-    - partner marketing
-    - go to market
-    - sustainability
-    - circular economy
-    - growth marketing
-    - marketing operations
-    - product operations
-    - implementation specialist
-    - service delivery
+    - customer success
+    - customer onboarding
+    - community operations
 
 runtime:
+  timezone: UTC
   request_timeout_ms: 12000
   ats_boards_per_source: 400
   max_scan_minutes: 18

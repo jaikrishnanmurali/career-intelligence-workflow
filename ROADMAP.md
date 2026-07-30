@@ -1,34 +1,30 @@
 # Roadmap
 
-Career Intelligence Workflow is currently a portfolio-led open-source project maintained by Jai Krishnan Murali. The roadmap protects the small, deterministic core before adding surface area.
+Career Intelligence Workflow is a portfolio-led open-source Career Ops companion maintained by Jai Krishnan Murali.
 
-## Current release
+## Current
 
-- Generic YAML search profile with validation.
+- One-command installation into an onboarded Career Ops workspace.
+- Deterministic import of role and location foundations without contact data.
+- Conversational confirmation of search-specific rules through Codex or Claude.
 - Public feeds and rolling Greenhouse, Lever, Ashby, and Workday discovery.
 - Exact, relative, and newly-discovered freshness evidence.
-- Language, location, authorization, expiry, manager, and experience rules.
-- Stateful deduplication and Resend email delivery.
-- Manual and twice-daily GitHub Actions workflows.
-- Shared Codex and Claude Code skill.
-- Optional Career Ops handoff.
+- Hard eligibility filters, ranking cautions, saved state, and Resend digests.
+- Twice-daily private GitHub Actions workflow.
 - Zero model calls in the scheduled scanner.
 
 ## Next
 
-- Provider health telemetry and clearer per-source coverage reports.
-- More regression fixtures for multilingual hard-requirement wording.
-- A profile migration command for future YAML schema versions.
-- A safe configuration form that produces YAML without storing candidate data.
-- Release packaging and a one-command installer after the template workflow is proven with external users.
+- Publish a shorter versioned npm command after the GitHub installer is validated by external users.
+- Add a reviewed update command that preserves private configuration and state.
+- Add compatibility checks against supported Career Ops releases.
+- Improve provider health reporting and multilingual language-requirement fixtures.
+- Add a dry-run deployment audit that verifies private-repository assumptions before installing the workflow.
 
-## Deliberately out of scope
+## Out of scope
 
-- Automatic application submission.
-- Recruiter messaging or outreach automation.
-- Hidden model-based ranking in scheduled runs.
+- Rebuilding Career Ops candidate onboarding, CV generation, evaluation, or tracking.
+- Automatic application submission or employer messaging.
+- Model-based ranking inside scheduled runs.
 - Scraping behind authentication or bypassing access controls.
-- Storing CVs or full application histories in the public repository.
-- Reimplementing Career Ops' CV and application workflow.
-
-Feature requests should explain the user problem, the privacy impact, and whether the behavior can remain deterministic and testable.
+- Public storage of candidate profiles, CVs, reports, or search history.

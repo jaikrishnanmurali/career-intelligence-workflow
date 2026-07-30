@@ -1,6 +1,6 @@
 ---
 name: career-intelligence
-description: Configure, run, explain, or integrate the Career Intelligence Workflow, including zero-token job scans, Resend digests, privacy checks, and Career Ops handoff. Do not use it to submit applications.
+description: Configure or operate the Career Intelligence email and job-discovery companion inside Career Ops. Use for onboarding, scans, Resend digests, scheduling, recommendation explanations, and selected-job handoff. Do not use it to apply.
 ---
 
-Read and follow `../../../.agents/skills/career-intelligence/SKILL.md` completely. That file is the canonical cross-agent workflow. Then read the mode file it selects before taking action.
+Read and follow `../../../.agents/skills/career-intelligence/SKILL.md` completely. Then read the mode file it selects. Keep Career Ops responsible for evaluation, CV tailoring, tracking, and applications.

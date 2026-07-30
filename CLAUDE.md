@@ -1,7 +1,7 @@
-# Claude Code project guidance
+# Claude Code guidance
 
-Read and follow `AGENTS.md` before changing or running this project.
+Career Intelligence is installed inside Career Ops. Start Claude from the Career Ops root and follow its `AGENTS.md` before using this extension.
 
-The project skill is available at `.claude/skills/career-intelligence/SKILL.md` and can be invoked with `/career-intelligence`. The skill routes setup, scans, explanations, and Career Ops integration to the matching files in `modes/`.
+The installed `/career-intelligence` adapter points to this repository's canonical skill at `.agents/skills/career-intelligence/SKILL.md`. Career Ops remains responsible for evaluation, CV tailoring, tracking, and application work. This extension owns deterministic discovery and Resend digests only.
 
-The scheduled scanner must remain deterministic and must not call Claude or any other model API. Claude Code is an optional setup and maintenance interface only.
+The scheduled scanner must not call Claude or any other model API.

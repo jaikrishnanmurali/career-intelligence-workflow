@@ -2,37 +2,36 @@
 
 ## Purpose
 
-This repository finds and recommends recent job opportunities. Its scheduled runtime is deterministic and makes no model API calls. Codex and Claude Code are optional interfaces for setup, explanation, and maintenance; they are not part of the scheduled decision path.
+This repository is an email and always-on discovery companion for Career Ops. Career Ops owns the candidate profile, CV, application evaluation, tailoring, tracker, and later-stage workflow. This extension imports that foundation, adds a deterministic job scan, and sends a private recommendation digest through Resend.
 
-## Read before acting
+## Foundation rule
 
-Route Career Intelligence requests through `.agents/skills/career-intelligence/SKILL.md`. Read the matching file in `modes/` before onboarding, scanning, explaining a result, or integrating with Career Ops.
+- Career Ops is required. Do not present or configure this project as a standalone career system.
+- The supported layout is `career-ops/extensions/career-intelligence-workflow/`.
+- Start Codex or Claude from the Career Ops root. Read the root Career Ops instructions before this extension's mode files.
+- Treat Career Ops `config/profile.yml` and `cv.md` as the candidate source of truth. Store only search-specific additions in this extension's private `config/profile.yml`.
 
-## Product boundaries
+## Product boundary
 
 - Discover, normalize, verify, rank, deduplicate, and email job recommendations.
-- Never submit an application, fill a form, click Apply, or message an employer.
-- Never claim an exact posting age without exact timestamp evidence.
-- Keep `verified`, `likely`, and `newly_discovered` freshness labels distinct.
-- Treat experience requirements as cautions and ranking signals, not automatic rejections.
-- Keep source failures isolated so one provider does not stop the scan.
-- When installed inside Career Ops, hand a user-selected job URL to Career Ops for evaluation and CV tailoring. Do not duplicate that system here.
+- Keep `verified`, `likely`, and `newly_discovered` freshness evidence distinct.
+- Never submit an application, fill a form, message an employer, tailor a CV, or modify the Career Ops tracker.
+- When the user selects a recommendation, hand its URL and evidence summary to Career Ops.
+- The scheduled runtime must remain deterministic and make no model API calls.
 
-## Privacy
+## Privacy and consent
 
-- Never commit `config/profile.yml`, `.env`, API keys, email addresses, live reports, previews, or scan state.
-- Examples must be fictional or empty.
-- A scheduled deployment belongs in a private repository even when this source repository is public.
-- Never print secret values during setup, diagnostics, tests, or CI.
+- Never commit `.env`, credentials, email addresses, a real extension profile, live reports, previews, or scan state to the public source repository.
+- A live Career Ops deployment and its workflow must be private.
+- Never ask for an API key in chat, print a secret, send a real email, or install a recurring workflow without explicit confirmation.
+- Public examples and tests must be fictional.
 
 ## Development
 
-- Node.js 22 or newer is required.
-- Keep scheduled matching deterministic and explainable.
-- Do not add a model SDK or model call to `src/`.
-- Add or update tests when ranking, freshness, privacy, or integration behavior changes.
+- Node.js 22 or newer is required by this extension.
+- Keep model SDKs and model calls out of `src/`.
+- Add tests for installer, profile import, freshness, ranking, privacy, and email changes.
 - Run `npm test`, `npm run doctor`, and a bounded `npm run smoke` before release.
-- Preserve the public/private boundary described in `docs/PRIVACY.md`.
 
 ## Attribution
 

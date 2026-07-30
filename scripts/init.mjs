@@ -37,9 +37,9 @@ for (const [sourceName, destinationName] of files) {
 process.stdout.write([
   '',
   'Next:',
-  '1. Edit config/profile.yml with your search criteria.',
-  '2. Run npm run doctor.',
-  '3. Run npm run smoke.',
-  '4. Follow docs/RESEND.md before enabling email.',
+  '1. Open Codex or Claude from the Career Ops root.',
+  '2. Say: "Set up my 12-hour Career Intelligence job digest."',
+  '3. Review the imported search rules before the agent confirms the profile.',
+  '4. Add Resend only after the no-email smoke scan passes.',
   '',
 ].join('\n'));
