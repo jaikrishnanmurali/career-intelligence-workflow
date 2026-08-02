@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/readme/hero.svg" alt="Career Intelligence turns scheduled job discovery into a private, freshness-labelled email digest" width="900">
+  <img src="docs/readme/career-intelligence-editorial.png" alt="Your job search does not stop when you do: scheduled discovery, honest freshness labels and a private email digest" width="900">
 </p>
 
 <p align="center">
@@ -126,6 +126,10 @@ The agent follows the repository's eight-stage onboarding contract. It checks th
 Already use another Career Ops agent? You can keep it. This project's guided cloud setup currently supports Codex and Claude Code; Career Ops itself supports more agents.
 
 ## What happens every morning and evening
+
+<p align="center">
+  <img src="docs/readme/career-intelligence-product.png" alt="Example Career Intelligence email digest with three fictional roles labelled Fresh, Likely and Discovered" width="900">
+</p>
 
 Each delivery window has three staggered attempts. They are retries for one logical slot, not three separate scans.
 
@@ -326,6 +330,10 @@ No. It prepares a recommendation digest. You review the role and decide whether 
 </details>
 
 ## About the project
+
+<p align="center">
+  <img src="docs/readme/career-intelligence-mark.png" alt="Career Intelligence wordmark with the Scan, Filter, Verify and Deliver workflow" width="900">
+</p>
 
 Jai Krishnan Murali created Career Intelligence from the Career Ops workflow he used for his own job search. The public version was rebuilt as a reusable, privacy-conscious extension with Codex assistance and is maintained mainly by Jai.
 
