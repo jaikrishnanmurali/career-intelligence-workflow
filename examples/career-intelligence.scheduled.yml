@@ -36,6 +36,7 @@ concurrency:
 
 jobs:
   clock:
+    if: github.event_name == 'workflow_dispatch' || vars.CAREER_DIGEST_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:

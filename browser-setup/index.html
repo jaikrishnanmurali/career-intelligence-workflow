@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Set up a private zero-token Career Intelligence Discovery Digest in your browser.">
+  <title>Career Intelligence — Browser Setup</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#setup-main">Skip to setup</a>
+  <div class="paper-noise" aria-hidden="true"></div>
+
+  <div class="shell">
+    <aside class="route" aria-label="Setup progress">
+      <a class="brand" href="#" aria-label="Career Intelligence setup home">
+        <span class="brand-mark" aria-hidden="true">CI</span>
+        <span><strong>Career Intelligence</strong><small>Browser Setup</small></span>
+      </a>
+
+      <div class="route-intro">
+        <span class="eyebrow">Your setup route</span>
+        <p>Eight short stages. Your CV stays in the private workspace we create for you.</p>
+      </div>
+
+      <ol class="progress-list" id="progress-list">
+        <li class="is-current"><button type="button" data-jump="0"><span>01</span>Starting point</button></li>
+        <li><button type="button" data-jump="1"><span>02</span>Career profile</button></li>
+        <li><button type="button" data-jump="2"><span>03</span>Search map</button></li>
+        <li><button type="button" data-jump="3"><span>04</span>Coverage</button></li>
+        <li><button type="button" data-jump="4"><span>05</span>Private workspace</button></li>
+        <li><button type="button" data-jump="5"><span>06</span>Email</button></li>
+        <li><button type="button" data-jump="6"><span>07</span>Cloud checks</button></li>
+        <li><button type="button" data-jump="7"><span>08</span>First digest</button></li>
+      </ol>
+
+      <div class="privacy-stamp">
+        <span aria-hidden="true">PRIVATE</span>
+        <p>Personal deployments are never published to the project repository.</p>
+      </div>
+    </aside>
+
+    <main id="setup-main" class="workspace">
+      <header class="topbar">
+        <div class="status-chip"><span class="pulse" aria-hidden="true"></span> Browser setup</div>
+        <div class="topbar-facts" aria-label="Setup properties">
+          <span>Discovery: <strong>0 model tokens</strong></span>
+          <span>Smart Digest: <strong>off</strong></span>
+        </div>
+      </header>
+
+      <form id="setup-form" novalidate>
+        <section class="stage is-active" data-stage="0" aria-labelledby="stage-1-title">
+          <div class="stage-number">Stage 1 of 8</div>
+          <div class="hero-grid">
+            <div>
+              <p class="eyebrow">Starting point</p>
+              <h1 id="stage-1-title">No VS Code.<br>No paid Claude plan.</h1>
+              <p class="lede">You can still create a private job-discovery system that runs while your computer is off. This route uses forms and buttons; the technical work happens behind the page.</p>
+            </div>
+            <div class="route-ticket" aria-label="Your setup route summary">
+              <div class="ticket-head"><span>ROUTE</span><strong>FREE DISCOVERY</strong></div>
+              <dl>
+                <div><dt>Runs on</dt><dd>GitHub Actions</dd></div>
+                <div><dt>Emails through</dt><dd>Resend</dd></div>
+                <div><dt>Model calls</dt><dd>None</dd></div>
+                <div><dt>Your computer</dt><dd>Can be off</dd></div>
+              </dl>
+              <div class="ticket-code">SCAN / FILTER / DELIVER</div>
+            </div>
+          </div>
+
+          <div class="plain-truth">
+            <h2>What this route gives you</h2>
+            <div class="truth-grid">
+              <article><span>01</span><h3>Automated discovery</h3><p>Public job feeds, employer hiring systems and the official Career Ops structured scanner.</p></article>
+              <article><span>02</span><h3>Honest coverage</h3><p>Every run tells you which sources completed, failed or were only partially checked.</p></article>
+              <article><span>03</span><h3>A later upgrade</h3><p>You can connect Codex or Claude Code later for broader web search and full-description judgment.</p></article>
+            </div>
+          </div>
+
+          <div class="notice notice-candid">
+            <strong>One limit to know now</strong>
+            <p>This free route cannot use your Claude Web session inside GitHub Actions. It discovers and filters jobs automatically, but deep AI evaluation remains a manual step until you add a paid provider.</p>
+          </div>
+        </section>
+
+        <section class="stage" data-stage="1" aria-labelledby="stage-2-title" hidden>
+          <div class="stage-number">Stage 2 of 8</div>
+          <p class="eyebrow">Career profile</p>
+          <h1 id="stage-2-title">Give Career Ops the facts.</h1>
+          <p class="lede">Nothing here is used to invent a new professional identity. It becomes the private source material for your search.</p>
+
+          <div class="notice notice-safe"><strong>Private Codespace, no AI provider</strong><p>Your CV is processed inside your private GitHub Codespace. Discovery Setup does not send it to OpenAI or Anthropic.</p></div>
+
+          <div class="form-grid two">
+            <label class="field"><span>Your name</span><input name="fullName" autocomplete="name" required maxlength="120"><small>Used only inside your private Career Ops profile.</small></label>
+            <label class="field"><span>Email</span><input name="email" type="email" autocomplete="email" required><small>Use the same address for the simplest Resend setup.</small></label>
+            <label class="field"><span>Current city</span><input name="city" autocomplete="address-level2" required maxlength="100"></label>
+            <label class="field"><span>Current country</span><input name="country" autocomplete="country-name" required maxlength="100"></label>
+            <label class="field full"><span>Timezone</span><input name="timezone" id="timezone" required placeholder="Europe/Stockholm"><small>We use this to keep morning and evening delivery stable through daylight-saving changes.</small></label>
+          </div>
+
+          <div class="cv-drop" id="cv-drop">
+            <div>
+              <span class="drop-icon" aria-hidden="true">↧</span>
+              <h2>Add your CV</h2>
+              <p>Upload PDF, DOCX, TXT or Markdown. You can also paste the text below.</p>
+            </div>
+            <label class="file-button">Choose CV<input id="cv-file" type="file" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" hidden></label>
+          </div>
+          <div id="cv-file-status" class="inline-status" aria-live="polite"></div>
+          <label class="field"><span>CV text</span><textarea name="cvText" id="cv-text" rows="12" required minlength="120" placeholder="Your CV text will appear here for review. Correct anything the file extraction missed."></textarea><small>This text is not saved in your browser. It is written only when you prepare the private workspace.</small></label>
+        </section>
+
+        <section class="stage" data-stage="2" aria-labelledby="stage-3-title" hidden>
+          <div class="stage-number">Stage 3 of 8</div>
+          <p class="eyebrow">Search map</p>
+          <h1 id="stage-3-title">Describe the work you would actually take.</h1>
+          <p class="lede">Job titles vary. For each role family, add nearby titles and the responsibilities that should make an unfamiliar title count.</p>
+
+          <div id="role-list" class="repeat-list" aria-live="polite"></div>
+          <button class="button button-secondary add-button" id="add-role" type="button">+ Add another role family</button>
+
+          <div class="section-rule"><span>Location and language</span></div>
+          <div class="form-grid two">
+            <label class="field full"><span>Target locations, in order</span><textarea name="locations" rows="4" required placeholder="Stockholm, Sweden&#10;Amsterdam, Netherlands&#10;Vienna, Austria&#10;European Union — remote"></textarea><small>One location per line. The first receives the highest priority.</small></label>
+            <label class="field"><span>Languages you can work in</span><input name="workingLanguages" placeholder="English, Swedish"><small>List only languages you can genuinely use professionally.</small></label>
+            <label class="field"><span>Hard language blockers</span><input name="unsupportedLanguages" placeholder="German, Dutch, French"><small>A job is blocked only when it explicitly makes one of these mandatory.</small></label>
+            <label class="field"><span>Where you already have work authorization</span><input name="authorizedIn" placeholder="Sweden, European Union"></label>
+            <label class="field"><span>Management preference</span><select name="managerPreference"><option value="prefer-ic">Prefer individual-contributor roles</option><option value="exclude-required-management">Exclude roles requiring people management</option><option value="open">I’m open to management roles</option></select></label>
+          </div>
+          <label class="check-line"><input name="needsSponsorship" type="checkbox"><span><strong>I may need sponsorship outside the locations listed above.</strong><small>This is used only when a vacancy states a clear work-authorization restriction.</small></span></label>
+        </section>
+
+        <section class="stage" data-stage="3" aria-labelledby="stage-4-title" hidden>
+          <div class="stage-number">Stage 4 of 8</div>
+          <p class="eyebrow">Coverage</p>
+          <h1 id="stage-4-title">Know what “free discovery” can see.</h1>
+          <p class="lede">The scan is real. It is also bounded. We show gaps instead of treating an unavailable source as a source with zero jobs.</p>
+
+          <div class="coverage-compare">
+            <article class="coverage-card included">
+              <div class="coverage-label">Included automatically</div>
+              <h2>Structured discovery</h2>
+              <ul>
+                <li>Career Ops’ official structured scan</li>
+                <li>Platsbanken, Arbeitnow, The Hub and public remote-job feeds</li>
+                <li>Rotating Greenhouse, Lever, Ashby and Workday boards</li>
+                <li>Freshness, duplicate, location and language checks</li>
+              </ul>
+            </article>
+            <article class="coverage-card missed">
+              <div class="coverage-label">May still be missed</div>
+              <h2>Browser-only gaps</h2>
+              <ul>
+                <li>A LinkedIn-only role that never triggers an alert</li>
+                <li>An Indeed listing with no employer or ATS copy</li>
+                <li>A JavaScript “Load more” careers page</li>
+                <li>An employer outside the ATS boards rotated through this run</li>
+              </ul>
+            </article>
+          </div>
+
+          <fieldset class="platforms">
+            <legend>Which platform alerts would you like to connect later?</legend>
+            <p>Choosing a platform does not claim it is connected. The email stage will keep it marked “not configured” until a real alert is recognized.</p>
+            <div class="platform-grid">
+              <label><input type="checkbox" name="platform" value="linkedin"><span>LinkedIn<small>Global</small></span></label>
+              <label><input type="checkbox" name="platform" value="indeed"><span>Indeed<small>Global</small></span></label>
+              <label><input type="checkbox" name="platform" value="glassdoor"><span>Glassdoor<small>Global</small></span></label>
+              <label><input type="checkbox" name="platform" value="climatebase"><span>Climatebase<small>Climate roles</small></span></label>
+              <label><input type="checkbox" name="platform" value="wellfound"><span>Wellfound<small>Startups</small></span></label>
+              <label><input type="checkbox" name="platform" value="jobbsafari"><span>Jobbsafari<small>Sweden</small></span></label>
+              <label><input type="checkbox" name="platform" value="iamexpat"><span>IamExpat<small>Netherlands</small></span></label>
+              <label><input type="checkbox" name="platform" value="karriere-at"><span>karriere.at<small>Austria</small></span></label>
+            </div>
+          </fieldset>
+
+          <label class="check-line consent"><input name="discoveryConsent" type="checkbox" required><span><strong>I understand the reduced-coverage examples above.</strong><small>Discovery Digest will never describe these browser-only sources as fully scanned.</small></span></label>
+        </section>
+
+        <section class="stage" data-stage="4" aria-labelledby="stage-5-title" hidden>
+          <div class="stage-number">Stage 5 of 8</div>
+          <p class="eyebrow">Private workspace</p>
+          <h1 id="stage-5-title">Review the plan before anything is published.</h1>
+          <p class="lede">We prepare Career Ops and the email extension in this temporary setup environment first. Your personal files are pushed only after GitHub confirms the destination is private.</p>
+
+          <div class="form-grid two">
+            <label class="field"><span>Morning digest</span><input name="morningTime" type="time" value="07:23" required></label>
+            <label class="field"><span>Evening digest</span><input name="eveningTime" type="time" value="19:23" required></label>
+            <label class="field full"><span>Private repository name</span><input name="repoName" value="career-ops-private" pattern="[A-Za-z0-9._-]+" required><small>This repository will contain your CV and search history. It must stay private.</small></label>
+          </div>
+          <label class="check-line"><input name="weekdaysOnly" type="checkbox"><span><strong>Send on weekdays only</strong><small>Leave unchecked to keep weekend discovery active.</small></span></label>
+
+          <div class="review-panel" id="review-panel">
+            <div><span class="eyebrow">Review</span><h2>Your search map will appear here.</h2></div>
+            <button class="button button-secondary" id="preview-plan" type="button">Build my review</button>
+          </div>
+          <div id="review-output" class="review-output" aria-live="polite"></div>
+
+          <label class="check-line consent"><input name="profileConfirmed" type="checkbox" required><span><strong>The role, location and language rules shown above reflect my real preferences.</strong><small>This confirms a machine-readable search map. It does not rewrite your professional identity.</small></span></label>
+          <label class="check-line consent"><input name="privateRepoConsent" type="checkbox" required><span><strong>I understand that my live deployment must use a private GitHub repository.</strong><small>The public project repository receives no CV, email address, credentials or search history.</small></span></label>
+
+          <div class="action-box">
+            <div><h2>Prepare the workspace</h2><p>This downloads the supported Career Ops release, creates your private configuration and installs the three cloud workflows. It does not publish, scan or send email.</p></div>
+            <button class="button button-primary" id="prepare-workspace" type="button">Prepare safely</button>
+          </div>
+          <div id="prepare-status" class="operation-status" aria-live="polite"></div>
+          <button class="reset-link" id="reset-workspace" type="button" hidden>Discard this unpublished workspace and start again</button>
+
+          <div class="github-box" id="github-box" hidden>
+            <div>
+              <span class="eyebrow">GitHub connection</span>
+              <h2>Publish to your private account</h2>
+              <p>If this setup is not already connected to GitHub, use the browser sign-in. We verify privacy before personal files leave this environment.</p>
+            </div>
+            <div class="button-cluster">
+              <button class="button button-secondary" id="connect-github" type="button">Connect GitHub</button>
+              <button class="button button-primary" id="publish-workspace" type="button">Create private repository</button>
+            </div>
+            <div id="github-auth-output" class="auth-output" aria-live="polite"></div>
+          </div>
+        </section>
+
+        <section class="stage" data-stage="5" aria-labelledby="stage-6-title" hidden>
+          <div class="stage-number">Stage 6 of 8</div>
+          <p class="eyebrow">Email</p>
+          <h1 id="stage-6-title">Connect delivery without putting a key in chat.</h1>
+          <p class="lede">Create a new sending-only key in Resend, then enter it here. The setup service passes it directly to GitHub Secrets and never writes it to a file.</p>
+
+          <div class="notice notice-safe"><strong>No domain needed for the simplest test</strong><p>Use <code>Career Intelligence &lt;onboarding@resend.dev&gt;</code> and send to the same email address used for your Resend account.</p></div>
+          <p><a class="text-link" href="https://resend.com/api-keys" target="_blank" rel="noreferrer">Open Resend API keys ↗</a></p>
+
+          <div class="form-grid two">
+            <label class="field full"><span>New Resend sending key</span><input id="resend-key" type="password" autocomplete="new-password" placeholder="re_••••••••••••••••" required><small>Revoke any key that has previously appeared in a chat, screenshot, commit or log.</small></label>
+            <label class="field"><span>Sender</span><input id="digest-from" value="Career Intelligence &lt;onboarding@resend.dev&gt;" required></label>
+            <label class="field"><span>Recipient</span><input id="digest-to" type="email" required></label>
+          </div>
+          <label class="check-line"><input id="send-email-test" type="checkbox"><span><strong>Send one test email now</strong><small>This sends only a connection check. It does not run a job scan.</small></span></label>
+          <button class="button button-primary" id="configure-email" type="button">Save securely</button>
+          <div id="email-status" class="operation-status" aria-live="polite"></div>
+
+          <div class="alert-note">
+            <span class="route-tag">OPTIONAL NEXT</span>
+            <h2>Platform-alert intake</h2>
+            <p>The selected job platforms still need one alert and one forwarding test each. Until an alert is recognized, its coverage state remains <strong>not configured</strong>—never “scanned.”</p>
+          </div>
+        </section>
+
+        <section class="stage" data-stage="6" aria-labelledby="stage-7-title" hidden>
+          <div class="stage-number">Stage 7 of 8</div>
+          <p class="eyebrow">Cloud checks</p>
+          <h1 id="stage-7-title">Test the wiring before the schedule wakes up.</h1>
+          <p class="lede">The schedule remains off during these checks. The page watches each GitHub run and unlocks activation only after both turn green.</p>
+
+          <div class="test-stack">
+            <article>
+              <span class="test-index">A</span>
+              <div><h2>Guard-only check</h2><p>Checks private-repository rules, workflow permissions and state wiring. No scan. No email.</p></div>
+              <button class="button button-secondary workflow-trigger" data-mode="guard-only" type="button">Run safety check</button>
+            </article>
+            <article>
+              <span class="test-index">B</span>
+              <div><h2>Structured no-email scan</h2><p>Runs Career Ops and the supplemental sources, then records completed, partial and failed lanes. Uses zero model tokens.</p></div>
+              <button class="button button-secondary workflow-trigger" data-mode="structured-only" type="button">Run no-email scan</button>
+            </article>
+          </div>
+          <div id="workflow-status" class="operation-status" aria-live="polite"></div>
+        </section>
+
+        <section class="stage" data-stage="7" aria-labelledby="stage-8-title" hidden>
+          <div class="stage-number">Stage 8 of 8</div>
+          <p class="eyebrow">First digest</p>
+          <h1 id="stage-8-title">Turn on the two daily windows.</h1>
+          <p class="lede">Activation allows scheduled runs. A successful run with no recommendations sends no empty email; it records the result and closes that delivery slot.</p>
+
+          <div class="activation-card">
+            <div class="activation-orbit" aria-hidden="true"><span></span></div>
+            <div>
+              <span class="route-tag">READY WHEN YOU ARE</span>
+              <h2>Discovery Digest</h2>
+              <ul>
+                <li>Smart Digest remains off</li>
+                <li>Three attempts protect each delivery window</li>
+                <li>One stable delivery key prevents duplicate email</li>
+                <li>Your computer can be off</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="button-cluster final-actions">
+            <button class="button button-primary" id="activate-schedule" type="button">Activate the schedule</button>
+            <button class="button button-secondary" id="run-first-digest" type="button">Run the first digest now</button>
+          </div>
+          <div id="activation-status" class="operation-status" aria-live="polite"></div>
+
+          <div class="upgrade-note">
+            <h2>Later, if you want deeper evaluation</h2>
+            <p>Connect Codex or Claude Code only after this route works. Smart Digest sends relevant CV and job context to that provider and can cost money. It is never enabled by this free setup.</p>
+          </div>
+        </section>
+
+        <footer class="form-nav">
+          <button class="button button-quiet" id="back-stage" type="button">← Back</button>
+          <div id="global-status" class="global-status" role="status" aria-live="polite"></div>
+          <button class="button button-primary" id="next-stage" type="button">Continue →</button>
+        </footer>
+      </form>
+    </main>
+  </div>
+
+  <template id="role-template">
+    <article class="repeat-card role-card">
+      <div class="repeat-head"><span class="role-count">Role 1</span><button class="remove-role" type="button" aria-label="Remove role family">Remove</button></div>
+      <label class="field"><span>Role family</span><input data-field="label" required placeholder="Product marketing"></label>
+      <div class="form-grid two compact">
+        <label class="field"><span>Titles that belong here</span><textarea data-field="titleTerms" rows="4" required placeholder="Product Marketing Specialist&#10;Partner Marketing Specialist"></textarea></label>
+        <label class="field"><span>Work that should count</span><textarea data-field="responsibilityTerms" rows="4" required placeholder="Go-to-market planning&#10;Partner campaigns&#10;Product launches"></textarea></label>
+      </div>
+    </article>
+  </template>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

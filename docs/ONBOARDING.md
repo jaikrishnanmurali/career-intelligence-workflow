@@ -1,6 +1,15 @@
 # Guided onboarding contract
 
-This file defines the setup conversation for Codex and Claude Code. The agent owns the navigation: it checks the workspace, runs the safe commands it can run, explains each result, and asks the user only for decisions or sign-ins.
+This file defines the setup conversation for Codex and Claude Code and the equivalent safety contract for Browser Setup. The guide owns the navigation: it checks the workspace, runs the safe actions it can run, explains each result, and asks the user only for decisions or sign-ins.
+
+## Browser-only entry
+
+Someone using only a free ChatGPT or Claude website account must not be sent directly to a Claude Code installation or paid-plan screen. Explain the two honest outcomes:
+
+- **Browser Setup** creates Discovery Digest in a GitHub Codespace without VS Code knowledge or model calls. It automates Career Ops' documented manual profile path, publishes to a verified private repository, connects Resend through GitHub Secrets, and leaves Smart Digest off.
+- **Agent-guided setup** uses Codex or Claude Code and can later add Smart Digest after separate privacy and cost consent.
+
+Give the Browser Setup link when the person chooses the first route. The website chat remains a guide; it does not receive local access, a GitHub token, a Resend key or the ability to run unattended model calls. Browser Setup follows the same eight outcomes below, with buttons and forms replacing the agent's local commands.
 
 The first visible reply should be:
 
@@ -33,9 +42,9 @@ Say what is happening:
 Handle the result:
 
 - **Codex CLI/Desktop or Claude Code:** continue in the current conversation.
-- **ChatGPT or Claude website:** explain that the website can discuss the setup but cannot install or run it on the computer. Give one exact next step: open PowerShell or the VS Code terminal, enter the Career Ops folder, start `codex` or `claude`, and paste the starter prompt.
+- **ChatGPT or Claude website:** explain that the website itself cannot install or run the local workflow. Ask whether the user already has Codex or Claude Code. If not, offer the Browser Setup link for free Discovery Digest and state that it excludes Smart Digest and Career Ops' AI evaluation. If the user already has a supported coding agent, give one exact handoff step into that agent.
 - **Wrong folder:** locate a likely Career Ops root without recursively scanning broad parent archives. Ask before changing folders when more than one candidate exists.
-- **Missing Node, Git, GitHub CLI, Codex, or Claude:** explain which later stage needs it, offer the official installation route, and verify the installation before continuing. The user may keep another Career Ops agent; Codex or Claude Code is needed only for this guided extension and, if chosen, its Smart cloud worker.
+- **Missing Node, Git, GitHub CLI, Codex, or Claude:** in the agent-guided route, explain which later stage needs it, offer the official installation route, and verify the installation before continuing. In Browser Setup, the Codespace supplies Node, Git and GitHub CLI; Codex and Claude Code are not required for Discovery Digest. The user may keep another Career Ops agent for ordinary Career Ops work.
 
 Complete stage id: `environment`. Mark it complete only after the checks have passed or the user has reached a verified equivalent state.
 
@@ -101,6 +110,8 @@ Explain that GitHub Actions keeps the search running while the computer is off. 
 
 Use GitHub CLI for sign-in, repository creation, remote setup, and visibility checks. Prefer browser sign-in. Before committing, show what will be included and confirm that ignored secrets, reports, and runtime state are excluded. Preserve unrelated local changes.
 
+Career Ops ignores its generated root `package-lock.json`. The cloud workflows use `npm ci`, so the private deployment commit must explicitly include both `package-lock.json` and `extensions/career-intelligence-workflow/package-lock.json`. Fail the readiness check if either lockfile is absent from the commit.
+
 Stop if the repository is public. Offer to make it private or create a new private repository; do not push personal career data to a public remote. If a remote already exists, inspect it and reuse it when appropriate instead of creating another repository.
 
 Complete stage id: `github`.
@@ -139,7 +150,7 @@ Complete stage id: `resend`.
 
 ## Stage 7 of 8 — Installing the 12-hour schedule and cloud pipelines
 
-Install the workflows only after the private repository and reviewed search map are ready. Explain the three separate pipelines in user terms:
+Install the workflows only after the private repository and reviewed search map are ready. Create the private repository variable `CAREER_DIGEST_ENABLED=false` before pushing or immediately afterward, so scheduled triggers remain dormant during validation. Explain the three separate pipelines in user terms:
 
 - **Alert intake:** every three hours, reads new forwarded platform alerts and saves only normalized leads.
 - **Job discovery and digest:** runs the official Career Ops scan, the supplemental scanner and, if enabled, the bounded Smart stages. It delivers at the user's local morning and evening windows.
@@ -158,6 +169,8 @@ Complete stage id: `cloud_workflow`.
 ## Stage 8 of 8 — Sending the first digest
 
 Before the first `run`, summarize what will happen: a live scan, state update, and an email only if there are new non-blocked recommendations. Ask for explicit confirmation because this action can send an email.
+
+After guard-only, alert intake where selected, and structured-only checks pass, ask separately before changing `CAREER_DIGEST_ENABLED` to `true`. Committing a workflow is not consent to activate its schedule.
 
 After the run, report:
 

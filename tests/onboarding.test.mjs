@@ -37,6 +37,7 @@ test('guided onboarding covers all stages and critical recovery paths', async ()
   }
   for (const expected of [
     'ChatGPT or Claude website',
+    'Browser Setup',
     'Wrong folder',
     'public',
     'zero matching jobs',

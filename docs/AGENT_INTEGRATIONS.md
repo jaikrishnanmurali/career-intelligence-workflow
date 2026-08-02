@@ -15,7 +15,7 @@ Run Codex or Claude Code from the Career Ops root. The setup agent should:
 - collect secrets through `gh`, never through chat;
 - leave Smart disabled unless the user explicitly accepts cost and privacy.
 
-The ChatGPT and Claude websites cannot run the installer or configure the repository.
+The ChatGPT and Claude websites cannot run local installation commands or lend their consumer chat allowance to GitHub Actions. A website-only user can use the separate Browser Setup route for Discovery Digest. That route runs a deterministic setup service inside a private GitHub Codespace; it does not turn the website chat into a coding agent.
 
 ## Discovery Digest
 

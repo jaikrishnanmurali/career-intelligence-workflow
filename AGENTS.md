@@ -7,9 +7,10 @@ This repository is the scheduled discovery and email layer for Career Ops. Caree
 ## Foundation rule
 
 - For any setup or installation request, read `docs/ONBOARDING.md` completely and run its eight-stage conversation one stage at a time. If Career Ops is missing, offer to run its official initializer and complete its onboarding before installing this extension.
+- A user with only a browser chat may use `docs/BROWSER_SETUP.md`. That route automates Career Ops' documented manual profile path for Discovery Digest, requires a verified private repository, and must not claim to provide Career Ops' AI evaluation or Smart Digest.
 - Career Ops 1.22.x through 1.24.x is supported only while its validated scan-history contract remains unchanged. Do not present this project as a standalone career system.
 - The supported layout is `career-ops/extensions/career-intelligence-workflow/`.
-- Start Codex or Claude Code from the Career Ops root and read its instructions first.
+- For agent-guided setup, start Codex or Claude Code from the Career Ops root and read its instructions first. Browser Setup is the Discovery-only exception and runs from the public template Codespace.
 - Career Ops `config/profile.yml`, `cv.md`, `portals.yml`, `modes/scan.md` and `data/scan-history.tsv` remain source-of-truth context for interactive work and the optional Smart layer.
 - Setup derives a deterministic scan profile from Career Ops. The user must review and confirm its role terms, locations and language rules before scheduling. Do not hard-code one person's profile in source files.
 

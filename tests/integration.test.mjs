@@ -206,6 +206,7 @@ test('workflow installer adds three guarded attempts per delivery slot', async (
     // The imported fixture uses UTC, so DST does not require duplicate UTC crons.
     assert.equal((workflow.match(/- cron:/g) || []).length, 6);
     assert.match(workflow, /guard-only/);
+    assert.match(workflow, /CAREER_DIGEST_ENABLED/);
     assert.match(workflow, /schedule-guard\.mjs/);
     assert.match(workflow, /state-sync\.mjs restore/);
     assert.match(workflow, /state-sync\.mjs save/);

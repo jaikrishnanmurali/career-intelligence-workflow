@@ -2,6 +2,7 @@
 .env.*
 !.env.example
 .claude/settings.local.json
+.career-intelligence-setup/
 config/profile.yml
 node_modules/
 preview/

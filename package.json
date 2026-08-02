@@ -18,6 +18,7 @@
     "mail:doctor": "node scripts/mail-doctor.mjs",
     "update:check": "node scripts/check-updates.mjs",
     "smoke": "node scripts/smoke.mjs",
+    "setup:browser": "node browser-setup/server.mjs",
     "setup:status": "node scripts/setup-progress.mjs show",
     "status": "node scripts/status.mjs",
     "pause": "node scripts/lifecycle.mjs pause",

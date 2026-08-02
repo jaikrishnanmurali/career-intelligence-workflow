@@ -86,7 +86,7 @@ if (isMain) {
   installWorkflow(root)
     .then((destinations) => {
       for (const destination of destinations) process.stdout.write(`Installed ${destination}\n`);
-      process.stdout.write('The workflow will become active only after it is committed to a private GitHub repository.\n');
+      process.stdout.write('The workflow schedule stays disabled until the private repository variable CAREER_DIGEST_ENABLED is explicitly set to true.\n');
     })
     .catch((error) => {
       process.stderr.write(`${error.message}\n`);

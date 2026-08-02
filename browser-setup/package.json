@@ -1,0 +1,13 @@
+{
+  "name": "career-intelligence-browser-setup",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "mammoth": "^1.10.0",
+    "pdfjs-dist": "^5.4.149"
+  }
+}

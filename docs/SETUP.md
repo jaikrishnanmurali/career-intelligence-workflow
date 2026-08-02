@@ -4,9 +4,11 @@ This guide installs Career Intelligence inside Career Ops and moves the complete
 
 ## Before you start
 
-You need Node.js 22 or newer, Git, a GitHub account and Codex CLI/Desktop or Claude Code. A Resend account is needed when email is enabled.
+For agent-guided setup, you need Node.js 22 or newer, Git, a GitHub account and Codex CLI/Desktop or Claude Code. A Resend account is needed when email is enabled.
 
 The ChatGPT and Claude websites cannot run these installation commands. PowerShell, macOS Terminal, Linux Terminal and the VS Code terminal can.
+
+If you only use a free website chat, use [Browser Setup](BROWSER_SETUP.md). It opens a guided page in GitHub Codespaces, installs the supported Career Ops release and creates Discovery Digest without requiring VS Code knowledge or a paid model. Smart Digest and Career Ops' AI evaluation remain unavailable until a supported provider is connected later.
 
 ## 1. Install and onboard Career Ops
 
@@ -145,11 +147,20 @@ cd ../..
 git add .github/workflows/career-intelligence.yml
 git add .github/workflows/career-intelligence-intake.yml
 git add .github/workflows/career-intelligence-maintenance.yml
+git add -f package-lock.json
+git add -f extensions/career-intelligence-workflow/package-lock.json
 git commit -m "Enable private Career Intelligence digest"
 git push
+gh variable set CAREER_DIGEST_ENABLED --body false
 ```
 
-In GitHub, run `guard-only` first. If alert intake is enabled, manually test that workflow next. Then run `structured-only`, which scans without delivering. Only after those checks should you confirm one deliberate `run` and inspect:
+The schedule is now installed but dormant. In GitHub, run `guard-only` first. If alert intake is enabled, manually test that workflow next. Then run `structured-only`, which scans without delivering. Only after those checks pass should you enable the schedule:
+
+```powershell
+gh variable set CAREER_DIGEST_ENABLED --body true
+```
+
+Then confirm one deliberate `run` and inspect:
 
 - number of jobs scanned;
 - recommendations and freshness labels;

@@ -1,0 +1,25 @@
+{
+  "name": "Career Intelligence Browser Setup",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "forwardPorts": [4173],
+  "portsAttributes": {
+    "4173": {
+      "label": "Career Intelligence Setup",
+      "onAutoForward": "openBrowser",
+      "visibility": "private"
+    }
+  },
+  "postCreateCommand": "npm ci --ignore-scripts && npm ci --ignore-scripts --prefix browser-setup",
+  "postAttachCommand": "node browser-setup/launch.mjs",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "workbench.startupEditor": "none",
+        "workbench.welcomePage.walkthroughs.openOnInstall": false
+      }
+    }
+  }
+}
