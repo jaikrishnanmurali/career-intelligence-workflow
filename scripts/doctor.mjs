@@ -15,9 +15,12 @@ import {
   MAX_AGENT_TURNS,
   MAX_FULL_EVALUATIONS,
   TIME_ZONE,
+  DELIVERY_TIMES,
+  INBOUND_ALERTS_ENABLED,
 } from '../src/config.mjs';
 import { parseScanHistory, validateCareerOpsRoot } from '../src/career-ops.mjs';
 import { loadLocalEnv } from '../src/util.mjs';
+import { parse } from 'yaml';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = new Set(process.argv.slice(2));
@@ -64,6 +67,30 @@ if (args.has('--email')) {
   if (String(process.env.CAREER_DIGEST_FROM || '').includes('@resend.dev')) {
     warnings.push('The resend.dev test sender can deliver only to the email address registered with that Resend account.');
   }
+  if (INBOUND_ALERTS_ENABLED) {
+    check(Boolean(process.env.RESEND_RECEIVING_API_KEY), 'RESEND_RECEIVING_API_KEY is missing for enabled alert intake.');
+    check(Boolean(process.env.RESEND_RECEIVING_ADDRESS), 'RESEND_RECEIVING_ADDRESS is missing for enabled alert intake.');
+  }
+}
+const sourcesPath = path.join(ROOT, 'config', 'sources.yml');
+try {
+  const sources = parse(await readFile(sourcesPath, 'utf8'));
+  const selected = (sources?.platforms || []).filter((platform) => platform?.selected === true);
+  if (sources?.configured !== true) {
+    const message = 'The platform source plan is not confirmed. Review alert and search lanes in config/sources.yml.';
+    if (args.has('--deploy')) failures.push(message); else warnings.push(message);
+  }
+  for (const platform of selected) {
+    if (platform?.alert?.enabled !== true && platform?.search?.enabled !== true) {
+      failures.push(`${platform.label || platform.id} is selected but has neither alert nor search discovery enabled.`);
+    }
+    if (platform?.alert?.enabled === true && platform?.alert?.tested !== true) {
+      failures.push(`${platform.label || platform.id} alert intake is enabled but its forwarded test email is not confirmed.`);
+    }
+  }
+} catch (error) {
+  const message = `Platform source plan is unavailable: ${error.message}`;
+  if (args.has('--deploy')) failures.push(message); else warnings.push(message);
 }
 if (DIGEST_MODE === 'smart') {
   warnings.push(
@@ -84,6 +111,8 @@ process.stdout.write([
   `Cloud runner: ${DIGEST_MODE === 'smart' ? AGENT_PROVIDER : 'none'}`,
   `Lookback guidance: ${LOOKBACK_HOURS} hours (unknown timestamps are retained when newly discovered)`,
   `Timezone: ${TIME_ZONE}`,
+  `Local delivery attempts: ${DELIVERY_TIMES.join(', ')}`,
+  `Eight-platform alert intake: ${INBOUND_ALERTS_ENABLED ? 'enabled' : 'disabled'}`,
   `Smart limits: ${MAX_AGENT_TURNS} turns, ${MAX_AGENT_MINUTES} minutes per agent step, ${MAX_FULL_EVALUATIONS} full-JD evaluations`,
   `Discovery model usage: ${DIGEST_MODE === 'discovery' ? '0 tokens' : '0 tokens for the structured core; model tokens for gaps and evaluation'}`,
 ].join('\n') + '\n');

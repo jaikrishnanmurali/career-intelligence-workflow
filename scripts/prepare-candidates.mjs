@@ -52,6 +52,7 @@ const payload = {
   candidates,
   evaluateNow: candidates.slice(0, MAX_FULL_EVALUATIONS),
   awaitingEvaluation: candidates.slice(MAX_FULL_EVALUATIONS),
+  manualReview: existing?.manualReview || [],
 };
 await atomicWriteJson(path.join(stateRoot, 'candidates.json'), payload);
 process.stdout.write(

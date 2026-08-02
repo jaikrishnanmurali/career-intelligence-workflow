@@ -41,6 +41,11 @@ const PENDING_SCANNER_STATE_PATH = path.join(ROOT, 'state', 'pending-scanner-sta
 const REPORT_PATH = path.join(ROOT, 'reports', 'latest.json');
 const PREVIEW_TEXT = path.join(ROOT, 'preview', 'latest.txt');
 const PREVIEW_HTML = path.join(ROOT, 'preview', 'latest.html');
+const EFFECTIVE_MODE = process.env.CAREER_INTELLIGENCE_EFFECTIVE_MODE === 'discovery'
+  ? 'discovery'
+  : process.env.CAREER_INTELLIGENCE_EFFECTIVE_MODE === 'smart'
+    ? 'smart'
+    : DIGEST_MODE;
 
 export function deliveryKeyFor(
   slotId,
@@ -145,9 +150,9 @@ function emailRole(item) {
     firstSeen: item.firstSeen || '',
     portal: item.portal || '',
     jdFingerprint: item.jdFingerprint || '',
-    score: item.evaluation?.score || null,
-    why: item.evaluation?.why || 'Not evaluated in this run; included so evaluation limits cannot hide a job.',
-    cautions: item.evaluation?.cautions || '',
+    score: item.evaluation?.score || item.score || null,
+    why: item.evaluation?.why || item.why || 'Not evaluated in this run; included so evaluation limits cannot hide a job.',
+    cautions: item.evaluation?.cautions || item.cautions || '',
   };
 }
 
@@ -193,13 +198,14 @@ function reportFrom({ context, candidatePayload, coverage, evaluations, sourceHe
   const possible = merged.filter((item) => item.verdict === 'possible').map(emailRole);
   const other = merged.filter((item) => !['recommended', 'possible', 'hard_blocked'].includes(item.verdict)).map(emailRole);
   const hardBlocked = merged.filter((item) => item.verdict === 'hard_blocked');
+  const manualReview = (candidatePayload.manualReview || []).map(emailRole);
   const evaluatedCount = merged.filter((item) => item.evaluation).length;
   const warnings = coverageWarnings(coverage, sourceHealth, evaluations.warning);
   return {
     schemaVersion: 2,
     generatedAt,
     slotId,
-    mode: DIGEST_MODE,
+    mode: EFFECTIVE_MODE,
     runId: context.runId,
     careerOpsVersion: context.careerOpsVersion,
     scanSummary: [
@@ -207,7 +213,7 @@ function reportFrom({ context, candidatePayload, coverage, evaluations, sourceHe
         ? `The zero-token scanner checked ${context.structuredScan.jobsScanned || 0} normalized jobs and retained ${candidatePayload.candidates?.length || 0} recommendations.`
         : `Career Ops added ${candidatePayload.candidates?.length || 0} unsent job${candidatePayload.candidates?.length === 1 ? '' : 's'} in this scan.`,
       coverageLine(coverage),
-      DIGEST_MODE === 'smart'
+      EFFECTIVE_MODE === 'smart'
         ? `${evaluatedCount} received full-description fit evaluation; every remaining discovery was retained as unscored.`
         : 'No model evaluation ran; discoveries are grouped as unscored.',
     ].join(' '),
@@ -222,12 +228,13 @@ function reportFrom({ context, candidatePayload, coverage, evaluations, sourceHe
     recommended,
     possible,
     other,
+    manualReview,
     recommendations: recommended,
     hardBlockedCount: hardBlocked.length,
     hardBlocked: hardBlocked.map(emailRole),
     awaitingEvaluationCount: merged.length - evaluatedCount,
     discoveredCount: merged.length,
-    emailedCount: recommended.length + possible.length + other.length,
+    emailedCount: recommended.length + possible.length + other.length + manualReview.length,
     evaluationWarning: evaluations.warning,
   };
 }
@@ -257,8 +264,8 @@ export async function prepare({ slotId, generatedAt = new Date().toISOString() }
   if (pendingScanner?.runId && pendingScanner.runId !== context.runId) {
     throw new Error('Pending scanner state does not belong to the current run.');
   }
-  const coverage = await coverageFor(plan, DIGEST_MODE);
-  const evaluations = await evaluationsFor(candidatePayload, DIGEST_MODE);
+  const coverage = await coverageFor(plan, EFFECTIVE_MODE);
+  const evaluations = await evaluationsFor(candidatePayload, EFFECTIVE_MODE);
   const sourceHealth = updateSourceHealth(state.sourceHealth, coverage, generatedAt);
   const report = reportFrom({
     context, candidatePayload, coverage, evaluations, sourceHealth, generatedAt, slotId,
@@ -323,6 +330,7 @@ export async function deliver({ slotId, fetchImpl } = {}) {
     ...(outbox.report.recommended || []),
     ...(outbox.report.possible || []),
     ...(outbox.report.other || []),
+    ...(outbox.report.manualReview || []),
   ];
   const deliveredOutbox = {
     ...outbox,

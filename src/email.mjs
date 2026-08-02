@@ -16,10 +16,11 @@ function escapeHtml(value) {
 function coverageCopy(report) {
   if (report.mode === 'discovery') return {
     label: 'Reduced coverage',
-    summary: report.coverage?.summary || 'This run searched configured public feeds and rolling ATS boards. It did not attempt LinkedIn, Career Ops browser discovery or broad web search.',
+    summary: report.coverage?.summary || 'This run used the official Career Ops structured scan, supplemental feeds, rolling ATS boards and configured platform alerts. It did not sign into job platforms or run adaptive browser and broad web search.',
     details: [
       'Likely included: a role exposed by a configured public feed or an ATS board reached by this run, such as Greenhouse.',
-      'May be missed: a role visible only in LinkedIn or another search result.',
+      'Likely included: a platform-alert lead whose complete live employer or ATS specification could be verified.',
+      'May be missed: a role visible only in LinkedIn or another platform when its configured alert did not fire.',
       'May be missed: a vacancy behind a dynamic careers page that needs a browser to open and paginate.',
       'May be missed this run: a supported ATS company outside the current rolling board shard.',
     ],
@@ -70,7 +71,8 @@ export function buildDigest(report) {
   const recommended = asList(report.recommended || report.recommendations);
   const possible = asList(report.possible);
   const other = asList(report.other);
-  const all = [...recommended, ...possible, ...other];
+  const manualReview = asList(report.manualReview);
+  const all = [...recommended, ...possible, ...other, ...manualReview];
   const coverage = coverageCopy(report);
   const dateLabel = formatLocalTime(report.generatedAt);
   const modeLabel = report.mode === 'discovery' ? 'Discovery Digest' : 'Smart Digest';
@@ -83,6 +85,7 @@ export function buildDigest(report) {
     textSection('RECOMMENDED', recommended, 'Recommended'), '',
     textSection('POSSIBLE MATCHES', possible, 'Possible'), '',
     textSection('OTHER NEW OR UNSCORED JOBS', other, 'Other'), '',
+    textSection('NEEDS A QUICK MANUAL CHECK — NOT A RECOMMENDATION', manualReview, 'Manual check'), '',
     `HARD BLOCKED AND NOT EMAILED: ${Number(report.hardBlockedCount || 0)}`,
     `AWAITING EVALUATION BUT EMAILED: ${Number(report.awaitingEvaluationCount || 0)}`, '',
     'A model score never hides a retained recommendation. Every retained role is emailed unless an explicit hard requirement blocks it.',
@@ -101,6 +104,7 @@ export function buildDigest(report) {
     ${htmlSection('Recommended', recommended, 'Recommended')}
     ${htmlSection('Possible matches', possible, 'Possible')}
     ${htmlSection('Other new or unscored jobs', other, 'Other')}
+    ${htmlSection('Needs a quick manual check — not a recommendation', manualReview, 'Manual check')}
     <p style="color:#475569">${Number(report.hardBlockedCount || 0)} hard-blocked roles were not emailed. ${Number(report.awaitingEvaluationCount || 0)} roles awaited evaluation but were still emailed.</p>
     <p style="border-top:1px solid #e2e8f0;padding-top:18px;color:#475569;font-size:13px">A model score never hides a retained recommendation. An unavailable timestamp does not remove a newly discovered role. No application was submitted.</p>
   </section></main></body></html>`;

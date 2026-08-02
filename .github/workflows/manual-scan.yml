@@ -1,51 +1,33 @@
-name: Manual career-intelligence scan
+name: Manual public project validation
 
 on:
   workflow_dispatch:
-    inputs:
-      send_email:
-        description: Send the digest through Resend
-        required: true
-        default: false
-        type: boolean
 
 permissions:
   contents: read
 
 jobs:
-  scan:
+  validate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Check out the reference implementation
-        uses: actions/checkout@v4
+      - name: Check out the public project
+        uses: actions/checkout@v6
 
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
+          cache: npm
 
       - name: Install locked dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
-      - name: Validate the public example
-        run: npm run doctor
-
-      - name: Run tests
+      - name: Run the complete fictional test suite
         run: npm test
 
-      - name: Run a bounded public demo
-        if: ${{ inputs.send_email != true }}
-        run: node scripts/smoke.mjs
+      - name: Verify the installable package contents
+        run: npm pack --dry-run
 
-      - name: Run and email a bounded demo
-        if: ${{ inputs.send_email == true }}
-        run: node src/run.mjs --send
-        env:
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          CAREER_DIGEST_FROM: ${{ secrets.CAREER_DIGEST_FROM }}
-          CAREER_DIGEST_TO: ${{ secrets.CAREER_DIGEST_TO }}
-          ATS_BOARDS_PER_SOURCE: "25"
-          MAX_SCAN_MINUTES: "5"
-          MAX_PAGE_VERIFICATIONS: "12"
-
+      - name: Confirm this workflow has no delivery credentials
+        run: echo "Public validation completed. No live Career Ops scan ran and no email was sent."

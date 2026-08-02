@@ -1,93 +1,95 @@
-# Resend email setup
+# Connect email without exposing a key
 
-Career Intelligence uses the Resend HTTPS API to send the recommendation digest. It needs sending access only and never reads an inbox.
+Resend has two separate jobs in Career Intelligence:
 
-You do not need a live website. You may not need a domain either.
+- it sends the finished recommendation digest;
+- optionally, it receives forwarded alerts from the eight broader job platforms.
 
-Complete profile onboarding, tests, and the no-email smoke scan before enabling delivery.
+The scanner still runs in GitHub Actions. Resend does not run Career Ops, evaluate jobs or submit applications.
 
-## Choose the simplest sending option
+You do not need a live website. A custom domain is optional for a personal setup.
 
-### No domain: send the digest to yourself
+## 1. Connect digest delivery
 
-Use this route when the digest will go to the same email address used for your Resend account.
+### The simplest personal setup
 
-Resend lets a new account send from `onboarding@resend.dev` to that account email. It will not send from this test domain to a different recipient.
-
-Use:
+If the digest goes to the same email address used for the Resend account, use:
 
 ```dotenv
 CAREER_DIGEST_FROM="Career Intelligence <onboarding@resend.dev>"
-CAREER_DIGEST_TO="the-email-used-for-your-resend-account@example.com"
+CAREER_DIGEST_TO="the-email-used-for-the-resend-account@example.com"
 ```
 
-This is enough for a personal job-search digest. No domain purchase, DNS change, or website is required.
+Resend's test sender can send only to the account email. This route needs no domain purchase or DNS work. Confirm the current restriction in [Resend's test-domain guidance](https://resend.com/docs/knowledge-base/403-error-resend-dev-domain) during setup.
 
-Resend documents the recipient restriction here: <https://resend.com/docs/knowledge-base/403-error-resend-dev-domain>
+### Sending to another address
 
-### Your own domain: send to other recipients
+Use a domain you control, add the DNS records Resend shows, and send from an address on that verified domain. The domain does not need to host a website. A sending subdomain such as `updates.example.com` keeps this traffic separate from ordinary email. See [Resend's domain guide](https://resend.com/docs/dashboard/domains/introduction).
 
-Choose this route if the digest must go to another address, several people, or a user other than the Resend account owner.
+Create `RESEND_API_KEY` with **sending access only**. If Resend offers a domain restriction, select the digest domain. This key never needs receiving access.
 
-You need a domain you control and access to its DNS records. The domain does not need to host a website. Add the SPF and DKIM records shown by Resend, wait for verification, and use an address on that domain:
+## 2. Add platform-alert intake (optional, recommended for coverage)
 
-```dotenv
-CAREER_DIGEST_FROM="Career Intelligence <digest@updates.example.com>"
-CAREER_DIGEST_TO="recipient@example.net"
-```
+Use a Resend-managed receiving domain if you do not own a domain. Resend will show an address under its managed `resend.app` receiving domain. A custom receiving domain is also supported, but it is not required. See [Resend Receiving](https://resend.com/docs/dashboard/receiving/introduction).
 
-A sending subdomain such as `updates.example.com` keeps this email traffic separate from ordinary mail.
+Create a second key named `RESEND_RECEIVING_API_KEY` with full access. Resend currently does not offer a receiving-only permission, so separating it from the sending-only key limits the delivery job's access.
 
-Resend domain guide: <https://resend.com/docs/dashboard/domains/introduction>
+Save the receiving address as `RESEND_RECEIVING_ADDRESS`. Do not publish it in the repository: an exposed address can attract unwanted mail and consume intake capacity.
 
-## Create a sending key
+The intake runs every three hours. It lists new received messages, retrieves only the bounded set it has not seen, extracts recognized job links and saves normalized candidates. It hashes inbound message identities and does not save raw bodies, subjects, attachments or sender addresses to GitHub state.
 
-Create a sending-only Resend API key. If you use a verified domain and Resend offers a domain restriction for the key, select that domain. Copy the key once and store it privately.
+## 3. Add the private GitHub secrets
 
-Do not put the key in Career Ops YAML, the extension profile, a workflow file, a GitHub issue, or agent chat.
-
-## Test locally
-
-From `career-ops/extensions/career-intelligence-workflow`, copy `.env.example` to an ignored `.env` and add the three values:
-
-```dotenv
-RESEND_API_KEY=re_replace_this_value
-CAREER_DIGEST_FROM="Career Intelligence <onboarding@resend.dev>"
-CAREER_DIGEST_TO="the-email-used-for-your-resend-account@example.com"
-```
-
-Validate without printing the values:
+Run these from the private Career Ops repository. Each command opens a secure prompt; the value should not be typed into agent chat or placed on the command line.
 
 ```bash
-npm run doctor -- --email --career-ops-root ../..
+gh secret set RESEND_API_KEY
+gh secret set CAREER_DIGEST_FROM
+gh secret set CAREER_DIGEST_TO
 ```
 
-The public workflow deliberately has no one-step local send command. It first saves an exact prepared payload to durable state, then sends that saved payload. After installing the private workflow, use one deliberate GitHub Actions `run` for the first real email.
+If platform-alert intake is enabled, also run:
 
-This separation keeps a retry from rescanning and producing a different message after an ambiguous delivery.
+```bash
+gh secret set RESEND_RECEIVING_API_KEY
+gh secret set RESEND_RECEIVING_ADDRESS
+gh variable set CAREER_ALERT_INTAKE_ENABLED --body true
+```
 
-If you use `onboarding@resend.dev`, `CAREER_DIGEST_TO` must be the email associated with the Resend account. With a verified domain, the sender must use that domain.
+The alert-intake workflow stays dormant on its schedule until that repository variable is `true`. A manual test can still be run while setup is in progress.
 
-Scheduled retries reuse one idempotency key for the repository and delivery slot. Do not add an attempt number or current timestamp to that key; its stability is what prevents duplicate mail after an ambiguous or partially saved delivery.
+## 4. Validate before sending
 
-## Add GitHub Actions secrets
+From `career-ops/extensions/career-intelligence-workflow`, first check the names and formats without making a network request:
 
-In the private Career Ops repository, add exactly:
+```bash
+npm run mail:doctor
+```
 
-| Secret | No-domain personal setup | Verified-domain setup |
-| --- | --- | --- |
-| `RESEND_API_KEY` | Sending-only key | Sending-only key |
-| `CAREER_DIGEST_FROM` | `Career Intelligence <onboarding@resend.dev>` | `Career Intelligence <digest@your-domain>` |
-| `CAREER_DIGEST_TO` | Resend account email | Intended recipient |
+With the ignored local `.env` loaded, the guided agent can verify receiving access without sending mail:
 
-Do not commit the local `.env`.
+```bash
+npm run mail:doctor -- --live-receiving
+```
 
-## Rotate an exposed key
+A real test message is deliberately harder to trigger. It requires both flags:
 
-1. Create a replacement key.
-2. Update the local ignored value and the GitHub secret.
-3. Run one successful test.
-4. Revoke the exposed key.
-5. Inspect Git history, workflow logs, and repository access.
+```bash
+npm run mail:doctor -- --send-test --confirm-send
+```
 
-Deleting a file does not remove a key from prior commits or logs.
+The agent must explain the recipient and ask before running that command.
+
+## 5. Connect the platform alerts
+
+Follow [PLATFORM_ALERTS.md](PLATFORM_ALERTS.md) one platform at a time. Most platforms send alerts only to the account email, so use a narrow forwarding rule in that inbox. Forward only verified job-alert messages from the selected platform—not the entire mailbox—to the private Resend receiving address.
+
+Mark a platform tested only when a manual intake run recognizes it. If the email arrives but the full job specification cannot be resolved, the pipeline records `manual_review`; it does not recommend the role from a title alone.
+
+## Retry safety
+
+The exact digest payload is saved before delivery. All attempts for one morning or evening slot reuse the same repository-scoped idempotency key. Do not add a timestamp or attempt number to the key. A 409 or any other non-2xx response is still an error unless an independent delivery receipt is already saved.
+
+## If a key was exposed
+
+Create a replacement, update the private secret, run the appropriate connection test, revoke the old key, and inspect repository history and workflow logs. Deleting visible text does not remove a key from prior chat, commits or logs.

@@ -1,0 +1,59 @@
+version: 1
+
+# These packs decide which discovery platforms onboarding proposes. They do not
+# create accounts or alerts. The user reviews the generated config/sources.yml
+# before the agent adds search queries or enables inbound email polling.
+packs:
+  global:
+    platforms: [linkedin, indeed, glassdoor, climatebase, wellfound]
+  sweden:
+    location_terms: [sweden, stockholm, gothenburg, malmo, linkoping]
+    platforms: [jobbsafari]
+  netherlands:
+    location_terms: [netherlands, amsterdam, rotterdam, utrecht]
+    platforms: [iamexpat]
+  austria:
+    location_terms: [austria, vienna, wien]
+    platforms: [karriere-at]
+
+platforms:
+  linkedin:
+    label: LinkedIn
+    search_domain: linkedin.com/jobs/view
+    canonical_id: numeric job ID
+    resolution: employer_ats_first
+  indeed:
+    label: Indeed
+    search_domain: indeed.com/viewjob
+    canonical_id: jk query parameter
+    resolution: employer_ats_first
+  glassdoor:
+    label: Glassdoor
+    search_domain: glassdoor.com/job-listing
+    canonical_id: listing ID or canonical URL
+    resolution: employer_ats_first
+  jobbsafari:
+    label: Jobbsafari
+    search_domain: jobbsafari.se
+    canonical_id: board ID or official URL
+    resolution: public_page_then_employer
+  iamexpat:
+    label: IamExpat
+    search_domain: iamexpat.nl/career
+    canonical_id: path or official URL
+    resolution: public_page_then_employer
+  karriere-at:
+    label: karriere.at
+    search_domain: karriere.at/jobs
+    canonical_id: job ID or official URL
+    resolution: public_page_then_employer
+  climatebase:
+    label: Climatebase
+    search_domain: climatebase.org/job
+    canonical_id: job path or official URL
+    resolution: public_page_then_employer
+  wellfound:
+    label: Wellfound
+    search_domain: wellfound.com/jobs
+    canonical_id: numeric job ID
+    resolution: public_page_then_employer

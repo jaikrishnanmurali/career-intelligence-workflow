@@ -14,7 +14,7 @@
         "required": ["id", "status", "reason"],
         "properties": {
           "id": { "type": "string", "minLength": 1 },
-          "status": { "enum": ["completed_structured", "completed_browser", "completed_search", "not_required", "partial", "failed"] },
+          "status": { "enum": ["completed_structured", "completed_browser", "completed_search", "completed_intake", "not_required", "not_run_discovery_mode", "not_configured", "disabled_by_user", "partial", "failed"] },
           "reason": { "type": "string", "maxLength": 500 }
         }
       }

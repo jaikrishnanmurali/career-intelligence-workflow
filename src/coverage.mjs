@@ -14,7 +14,7 @@ function enabled(value) {
   return value?.enabled !== false;
 }
 
-export function createCoveragePlan(portalsText, { runId, mode }) {
+export function createCoveragePlan(portalsText, { runId, mode, sourcesText = '' }) {
   let portals;
   try {
     portals = parse(String(portalsText || ''));
@@ -30,6 +30,12 @@ export function createCoveragePlan(portalsText, { runId, mode }) {
   const queries = Array.isArray(portals.search_queries)
     ? portals.search_queries.filter(enabled)
     : [];
+  let sourceConfig = { platforms: [] };
+  if (String(sourcesText || '').trim()) {
+    try { sourceConfig = parse(String(sourcesText)); }
+    catch (error) { throw new Error(`Could not parse Career Intelligence sources.yml: ${error.message}`); }
+  }
+  const platforms = Array.isArray(sourceConfig?.platforms) ? sourceConfig.platforms : [];
   const sources = [
     {
       id: 'core-structured',
@@ -56,6 +62,16 @@ export function createCoveragePlan(portalsText, { runId, mode }) {
         query: String(query?.query || query?.search || '').trim(),
       };
     }),
+    ...platforms.map((platform, index) => ({
+      id: `platform-alert-${String(platform?.id || index + 1).toLowerCase().replace(/[^a-z0-9-]+/g, '-')}`,
+      type: 'platform_alert',
+      label: `${String(platform?.label || platform?.id || `Platform ${index + 1}`).trim()} alert intake`,
+      platform: String(platform?.id || '').trim(),
+      selected: platform?.selected === true,
+      alertEnabled: platform?.alert?.enabled === true,
+      alertTested: platform?.alert?.tested === true,
+      configuredMethod: 'Resend Receiving poll',
+    })),
   ];
   return {
     schemaVersion: 1,
@@ -70,8 +86,11 @@ const ALLOWED_SOURCE_STATUSES = new Set([
   'completed_structured',
   'completed_browser',
   'completed_search',
+  'completed_intake',
   'not_required',
   'not_run_discovery_mode',
+  'not_configured',
+  'disabled_by_user',
   'partial',
   'failed',
 ]);
@@ -80,11 +99,19 @@ export function validateCoverageResult(payload, plan, { mode }) {
   if (mode === 'discovery' && !payload) {
     const sources = plan.sources.map((source) => ({
       ...source,
-      status: ['structured_feed', 'structured_ats'].includes(source.type)
+      status: ['structured_feed', 'structured_ats', 'career_ops_core'].includes(source.type)
         ? 'failed'
+        : source.type === 'platform_alert' && !source.selected
+          ? 'disabled_by_user'
+          : source.type === 'platform_alert'
+            ? 'not_configured'
         : 'not_run_discovery_mode',
-      reason: ['structured_feed', 'structured_ats'].includes(source.type)
+      reason: ['structured_feed', 'structured_ats', 'career_ops_core'].includes(source.type)
         ? 'The structured scanner did not produce a source receipt.'
+        : source.type === 'platform_alert' && !source.selected
+          ? 'The source pack did not select this platform for the configured locations.'
+          : source.type === 'platform_alert'
+            ? 'The platform alert has not been enabled and tested.'
         : 'Discovery Digest does not run browser or broad web-search discovery.',
     }));
     return {
@@ -127,11 +154,11 @@ export function validateCoverageResult(payload, plan, { mode }) {
     sources.push({ ...source, status: 'failed', reason: 'The agent did not report this configured source.' });
   }
   const failures = sources.filter((source) => (
-    ['failed', 'partial'].includes(source.status)
+    ['failed', 'partial', 'not_configured'].includes(source.status)
     || (mode === 'smart' && source.status === 'not_run_discovery_mode')
   ));
   const intentionallyNotRun = mode === 'discovery'
-    ? sources.filter((source) => source.status === 'not_run_discovery_mode')
+    ? sources.filter((source) => ['not_run_discovery_mode', 'disabled_by_user'].includes(source.status))
     : [];
   const completed = sources.length - failures.length - intentionallyNotRun.length;
   return {
@@ -144,7 +171,7 @@ export function validateCoverageResult(payload, plan, { mode }) {
     failures,
     sources,
     explanation: mode === 'discovery'
-      ? `${completed}/${sources.length} planned lanes completed through structured feeds or ATS endpoints. ${intentionallyNotRun.length} Career Ops browser or broad web-search lane${intentionallyNotRun.length === 1 ? ' was' : 's were'} not run; ${failures.length} structured lane${failures.length === 1 ? ' needs' : 's need'} attention.`
+      ? `${completed}/${sources.length} planned lanes completed through Career Ops structured discovery, supplemental feeds, ATS endpoints or configured alert intake. ${intentionallyNotRun.length} browser or adaptive broad web-search lane${intentionallyNotRun.length === 1 ? ' was' : 's were'} not run; ${failures.length} configured lane${failures.length === 1 ? ' needs' : 's need'} attention.`
       : failures.length
         ? `${failures.length} configured source${failures.length === 1 ? '' : 's'} were incomplete and will use their last successful catch-up point.`
         : 'Every configured Career Ops company and web-search query was accounted for.',
@@ -154,7 +181,7 @@ export function validateCoverageResult(payload, plan, { mode }) {
 export function coverageLine(coverage) {
   if (!coverage) return 'Coverage could not be verified.';
   if (coverage.completeness === 'reduced') {
-    return 'Reduced coverage: configured public feeds and rolling ATS boards ran; LinkedIn, browser and broad web-search sources did not.';
+    return 'Reduced coverage: the official Career Ops structured scan, supplemental feeds, rolling ATS boards and configured alert intake ran; direct signed-in platform crawling, browser interaction and adaptive broad web search did not.';
   }
   return `Coverage: ${coverage.completed}/${coverage.total} configured sources completed${coverage.failures?.length ? `; ${coverage.failures.length} need catch-up` : ''}.`;
 }

@@ -195,9 +195,15 @@ test('workflow installer adds three guarded attempts per delivery slot', async (
   try {
     const careerOpsRoot = path.join(temp, 'career-ops');
     await createCareerOpsFixture(careerOpsRoot);
+    await installIntoCareerOps(careerOpsRoot, {
+      sourceRoot: SOURCE_ROOT,
+      skipDependencies: true,
+    });
 
-    const destination = await installWorkflow(careerOpsRoot);
-    const workflow = await readFile(destination, 'utf8');
+    const destinations = await installWorkflow(careerOpsRoot);
+    assert.equal(destinations.length, 3);
+    const workflow = await readFile(destinations[0], 'utf8');
+    // The imported fixture uses UTC, so DST does not require duplicate UTC crons.
     assert.equal((workflow.match(/- cron:/g) || []).length, 6);
     assert.match(workflow, /guard-only/);
     assert.match(workflow, /schedule-guard\.mjs/);
@@ -207,6 +213,10 @@ test('workflow installer adds three guarded attempts per delivery slot', async (
     assert.match(workflow, /anthropics\/claude-code-action@v1/);
     assert.match(workflow, /repository\.private/);
     assert.match(workflow, /--slot/);
+    assert.match(workflow, /--max-turns 12/);
+    assert.doesNotMatch(workflow, /__MAX_AGENT_TURNS__|__CAREER_TIME_ZONE__|__CAREER_LOCAL_TIMES__|__CAREER_WEEKDAYS_ONLY__/);
+    assert.match(await readFile(destinations[1], 'utf8'), /poll-alerts\.mjs/);
+    assert.match(await readFile(destinations[2], 'utf8'), /check-updates\.mjs/);
 
     await assert.rejects(installWorkflow(careerOpsRoot), /Refusing to overwrite/);
   } finally {

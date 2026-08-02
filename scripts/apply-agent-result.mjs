@@ -35,7 +35,7 @@ async function applyDiscovery(payload) {
   const fallbackSources = plan.sources.map((source) => {
     const prior = priorById.get(source.id);
     const agent = agentById.get(source.id);
-    if (['structured_feed', 'structured_ats'].includes(source.type) && prior) {
+    if (['career_ops_core', 'structured_feed', 'structured_ats', 'platform_alert'].includes(source.type) && prior) {
       return { id: source.id, status: prior.status, reason: prior.reason };
     }
     if (agent) return agent;

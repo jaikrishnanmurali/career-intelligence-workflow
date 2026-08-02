@@ -86,6 +86,13 @@ export function buildDeploymentDraft(careerOpsProfile) {
       timezone,
       weekdays_only: false,
       minimum_gap_hours: 6,
+      delivery_times: ['07:23', '07:43', '08:03', '19:23', '19:43', '20:03'],
+    },
+    intake: {
+      enabled: false,
+      max_emails_per_run: 100,
+      max_body_bytes: 1_500_000,
+      retention_days: 30,
     },
     scanner: {
       direct_sources: ['platsbanken-jobstream', 'arbeitnow', 'thehub', 'wttj', 'jobicy', 'himalayas', 'remotive', 'remoteok'],

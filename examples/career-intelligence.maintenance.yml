@@ -1,0 +1,46 @@
+# Installed only in the root of a private Career Ops repository.
+name: Career Intelligence compatibility watch
+
+on:
+  schedule:
+    - cron: "41 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  updates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    outputs:
+      updates_available: ${{ steps.check.outputs.updates_available }}
+      summary: ${{ steps.check.outputs.summary }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Check upstream versions without applying them
+        id: check
+        working-directory: extensions/career-intelligence-workflow
+        run: node scripts/check-updates.mjs
+        env:
+          CAREER_OPS_ROOT: ../..
+
+      - name: Open one guided-update issue
+        if: steps.check.outputs.updates_available == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SUMMARY: ${{ steps.check.outputs.summary }}
+        run: |
+          existing=$(gh issue list --repo "${{ github.repository }}" --state open --search '"Career Intelligence update available" in:title' --json number --jq '.[0].number')
+          body="An upstream update is available. The scheduled digest was not changed. Open Codex or Claude Code from the Career Ops root and say: Update Career Intelligence safely.\n\n$SUMMARY"
+          if [ -z "$existing" ]; then
+            gh issue create --repo "${{ github.repository }}" --title "Career Intelligence update available" --body "$body"
+          else
+            gh issue comment "$existing" --repo "${{ github.repository }}" --body "$body"
+          fi

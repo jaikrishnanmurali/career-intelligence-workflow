@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -9,6 +9,7 @@ import {
   DIGEST_MODE,
   ENABLED_ATS_SOURCES,
   ENABLED_DIRECT_SOURCES,
+  LOOKBACK_HOURS,
   MAX_FULL_EVALUATIONS,
 } from '../src/config.mjs';
 import { createCoveragePlan } from '../src/coverage.mjs';
@@ -26,6 +27,11 @@ const EXTENSION_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const CAREER_OPS_ROOT = path.resolve(process.env.CAREER_OPS_ROOT || path.join(EXTENSION_ROOT, '..', '..'));
 const STATE_ROOT = path.join(EXTENSION_ROOT, 'state');
 const STATE_PATH = path.join(STATE_ROOT, 'state.json');
+const EFFECTIVE_MODE = process.env.CAREER_INTELLIGENCE_EFFECTIVE_MODE === 'smart'
+  ? 'smart'
+  : process.env.CAREER_INTELLIGENCE_EFFECTIVE_MODE === 'discovery'
+    ? 'discovery'
+    : DIGEST_MODE;
 
 function argumentValue(name) {
   const index = process.argv.indexOf(name);
@@ -92,9 +98,32 @@ function candidateFor(role) {
   };
 }
 
-function coverageReceipt(plan, stats) {
+function coverageReceipt(plan, stats, coreResult, intakeCoverage) {
   const bySource = new Map(stats.map((item) => [item.source, item]));
+  const intakeByPlatform = new Map(
+    (intakeCoverage?.platforms || []).map((item) => [String(item.platform || ''), item]),
+  );
   const sources = plan.sources.map((source) => {
+    if (source.type === 'career_ops_core') {
+      return coreResult?.status === 'completed_structured'
+        ? { ...source, status: 'completed_structured', reason: `Official Career Ops ${coreResult.careerOpsVersion || ''} scan.mjs completed.`.trim() }
+        : { ...source, status: 'failed', reason: 'The official Career Ops structured scan did not produce a completion receipt.' };
+    }
+    if (source.type === 'platform_alert') {
+      if (!source.selected) {
+        return { ...source, status: 'disabled_by_user', reason: 'The source pack did not select this platform for the configured locations.' };
+      }
+      if (!source.alertEnabled || !source.alertTested) {
+        return { ...source, status: 'not_configured', reason: 'The native alert and its forwarded test email have not both been confirmed.' };
+      }
+      const receipt = intakeByPlatform.get(source.platform);
+      if (!receipt) return { ...source, status: 'failed', reason: 'No intake receipt exists for this configured platform.' };
+      return {
+        ...source,
+        status: receipt.status === 'completed' ? 'completed_intake' : receipt.status,
+        reason: String(receipt.reason || ''),
+      };
+    }
     if (!['structured_feed', 'structured_ats'].includes(source.type)) {
       return {
         ...source,
@@ -166,11 +195,14 @@ await mkdir(STATE_ROOT, { recursive: true });
 const runId = argumentValue('--run-id') || process.env.GITHUB_RUN_ID || `local-${Date.now()}`;
 const startedAt = process.env.CAREER_SCAN_STARTED_AT || new Date().toISOString();
 const state = { ...defaultScannerState(), ...await readJson(STATE_PATH, {}) };
-const scanHistoryPath = path.join(CAREER_OPS_ROOT, 'data', 'scan-history.tsv');
-await writeFile(path.join(STATE_ROOT, 'before-scan.tsv'), await optionalText(scanHistoryPath), 'utf8');
+const coreResult = await readJson(path.join(STATE_ROOT, 'career-ops-scan-result.json'), null);
+if (process.env.CAREER_INTELLIGENCE_REQUIRE_CAREER_OPS_SCAN === 'true' && coreResult?.status !== 'completed_structured') {
+  throw new Error('The official Career Ops structured scan must complete before supplemental discovery.');
+}
 
 const portalsText = await optionalText(path.join(CAREER_OPS_ROOT, 'portals.yml'), '{}');
-const careerOpsPlan = createCoveragePlan(portalsText, { runId, mode: DIGEST_MODE });
+const sourcesText = await optionalText(path.join(EXTENSION_ROOT, 'config', 'sources.yml'), '');
+const careerOpsPlan = createCoveragePlan(portalsText, { runId, mode: EFFECTIVE_MODE, sourcesText });
 const structuredSources = [
   ...ENABLED_DIRECT_SOURCES.map((name) => ({ id: name, type: 'structured_feed', label: name, configuredMethod: 'public feed or API' })),
   ...ENABLED_ATS_SOURCES.map((name) => ({ id: name, type: 'structured_ats', label: name, configuredMethod: 'rolling ATS boards' })),
@@ -178,6 +210,7 @@ const structuredSources = [
 const coveragePlan = {
   ...careerOpsPlan,
   sources: [
+    ...careerOpsPlan.sources.filter((source) => source.id === 'core-structured'),
     ...structuredSources,
     ...careerOpsPlan.sources.filter((source) => source.id !== 'core-structured'),
   ],
@@ -185,11 +218,56 @@ const coveragePlan = {
 await atomicWriteJson(path.join(STATE_ROOT, 'coverage-plan.json'), coveragePlan);
 
 const scan = await scanAllSources(state, startedAt);
+const intakePayload = await readJson(path.join(STATE_ROOT, 'intake-candidates.json'), { candidates: [] });
+const intakeJobs = (intakePayload.candidates || [])
+  .filter((candidate) => candidate.specStatus === 'verified' && candidate.applicationActive === true)
+  .map((candidate) => ({
+    title: candidate.title,
+    company: candidate.company,
+    location: candidate.location,
+    description: candidate.description,
+    url: candidate.officialUrl || candidate.boardUrl,
+    postedAt: candidate.postedAt,
+    postingPrecision: candidate.postingPrecision,
+    postedAtEvidence: candidate.postedAtEvidence || `Verified ${candidate.sourcePlatform || candidate.platform} alert lead.`,
+    source: `alert:${candidate.sourcePlatform || candidate.platform}`,
+    boardKey: candidate.candidateKey,
+  }));
+const manualReview = (intakePayload.candidates || [])
+  .filter((candidate) => ['unresolved', 'manual_review'].includes(candidate.specStatus))
+  .filter((candidate) => candidate.applicationActive !== false)
+  .filter((candidate) => {
+    const discovered = Date.parse(candidate.discoveredAt);
+    const runStarted = Date.parse(startedAt);
+    return Number.isFinite(discovered)
+      && Number.isFinite(runStarted)
+      && discovered >= runStarted - LOOKBACK_HOURS * 3_600_000
+      && discovered <= runStarted + 5 * 60_000;
+  })
+  .filter((candidate) => {
+    const url = canonicalUrl(candidate.boardUrl);
+    return url && !(state.sentKeys || []).includes(`url:${url}`);
+  })
+  .slice(0, 50)
+  .map((candidate) => ({
+    url: canonicalUrl(candidate.boardUrl),
+    company: candidate.company || 'Company not verified',
+    title: candidate.title || 'Title not verified',
+    location: candidate.location || 'Location not verified',
+    postedAt: candidate.postedAt || '',
+    firstSeen: candidate.discoveredAt || startedAt,
+    portal: `alert:${candidate.platform}`,
+    jdFingerprint: '',
+    score: null,
+    why: 'A configured platform alert found this lead, but the complete live employer or ATS specification could not be verified automatically.',
+    cautions: 'Manual check required. This is not a fit recommendation, and its exact age or requirements may be unknown.',
+  }));
+scan.jobs.push(...intakeJobs);
 const shortlist = shortlistCandidates(scan.jobs, state, startedAt);
 const verified = await verifyCandidates(shortlist.candidates);
 const recommendations = verified.recommendations.map(recommendationRecord);
 const candidates = recommendations.map(candidateFor);
-const evaluateNow = DIGEST_MODE === 'smart' ? candidates.slice(0, MAX_FULL_EVALUATIONS) : [];
+const evaluateNow = EFFECTIVE_MODE === 'smart' ? candidates.slice(0, MAX_FULL_EVALUATIONS) : [];
 const nextState = updateScannerState(
   state,
   scan,
@@ -206,23 +284,31 @@ await atomicWriteJson(path.join(STATE_ROOT, 'pending-scanner-state.json'), {
   runId,
   state: nextState,
 });
-await atomicWriteJson(path.join(STATE_ROOT, 'coverage-result.json'), coverageReceipt(coveragePlan, scan.stats));
+const intakeCoverage = await readJson(path.join(STATE_ROOT, 'intake-coverage.json'), null);
+await atomicWriteJson(
+  path.join(STATE_ROOT, 'coverage-result.json'),
+  coverageReceipt(coveragePlan, scan.stats, coreResult, intakeCoverage),
+);
 await atomicWriteJson(path.join(STATE_ROOT, 'candidates.json'), {
   schemaVersion: 1,
   runId,
   generatedAt: startedAt,
   candidates,
   evaluateNow,
-  awaitingEvaluation: DIGEST_MODE === 'smart' ? candidates.slice(MAX_FULL_EVALUATIONS) : candidates,
+  awaitingEvaluation: EFFECTIVE_MODE === 'smart' ? candidates.slice(MAX_FULL_EVALUATIONS) : candidates,
+  manualReview,
 });
 await atomicWriteJson(path.join(STATE_ROOT, 'run-context.json'), {
   schemaVersion: 1,
   runId,
   startedAt,
-  mode: DIGEST_MODE,
+  mode: EFFECTIVE_MODE,
   scanner: 'structured-zero-token',
+  careerOpsVersion: coreResult?.careerOpsVersion || '',
   structuredScan: {
     jobsScanned: scan.jobs.length,
+    verifiedAlertLeads: intakeJobs.length,
+    alertLeadsNeedingManualReview: manualReview.length,
     relevantCandidates: shortlist.candidates.length,
     recommendations: recommendations.length,
     rejected: shortlist.rejected.length + verified.rejected.length,

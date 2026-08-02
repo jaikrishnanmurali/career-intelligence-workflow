@@ -9,6 +9,7 @@ Run Codex or Claude Code from the Career Ops root. The setup agent should:
 - verify Career Ops onboarding;
 - draft deterministic scan rules from Career Ops;
 - show those role, location, language and seniority rules for confirmation;
+- generate and review regional source packs, then guide selected platform alerts one at a time;
 - run the doctor, tests and a no-email scan;
 - guide GitHub browser sign-in and private-repository creation;
 - collect secrets through `gh`, never through chat;
@@ -18,7 +19,7 @@ The ChatGPT and Claude websites cannot run the installer or configure the reposi
 
 ## Discovery Digest
 
-Discovery invokes neither provider action. The Node scanner uses public feeds and rolling ATS endpoints and therefore consumes zero model tokens. It does not sign in to LinkedIn, run broad search-engine queries or operate dynamic browser pages.
+Discovery invokes neither provider action. It runs the official Career Ops structured scanner, supplemental public feeds, rolling ATS endpoints and any configured Resend alert intake, and therefore consumes zero model tokens. It does not sign in to LinkedIn, run adaptive broad search-engine queries or operate dynamic browser pages. An unresolved alert is shown as a manual-check lead, not scored as a recommendation.
 
 ## Smart scheduled workers
 
@@ -27,7 +28,7 @@ Smart uses one of:
 - `openai/codex-action`;
 - `anthropics/claude-code-action`.
 
-The discovery worker receives a bounded Career Ops search plan and the structured source receipt. The evaluation worker receives only the prepared candidate batch. Neither worker receives the Resend key or persisted Git credentials. Neither may submit an application, tailor a CV, edit the tracker or spawn subagents.
+The discovery worker receives a bounded Career Ops search plan, normalized alert leads and the structured source receipt. The evaluation worker receives only the prepared candidate batch. Neither worker receives a Resend key or persisted Git credentials. Neither may submit an application, tailor a CV, edit the tracker or spawn subagents.
 
 A clean runner validates the returned JSON before applying it. Email is handled by another clean runner.
 

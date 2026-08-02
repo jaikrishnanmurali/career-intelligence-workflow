@@ -56,6 +56,7 @@ const schedule = config.schedule || {};
 const budget = config.budget || {};
 const health = config.health || {};
 const scanner = config.scanner || {};
+const intake = config.intake || {};
 const searchProfile = config.search_profile || {};
 
 function stringList(value, fallback, label, { allowEmpty = false } = {}) {
@@ -106,6 +107,16 @@ export const LOOKBACK_HOURS = numberInRange(
 );
 export const TIME_ZONE = String(schedule.timezone || 'UTC').trim() || 'UTC';
 export const WEEKDAYS_ONLY = schedule.weekdays_only === true;
+export const DELIVERY_TIMES = stringList(
+  schedule.delivery_times,
+  ['07:23', '07:43', '08:03', '19:23', '19:43', '20:03'],
+  'schedule.delivery_times',
+).map((value) => {
+  if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value)) {
+    throw new Error(`schedule.delivery_times contains an invalid local time: ${value}`);
+  }
+  return value;
+});
 export const MINIMUM_GAP_HOURS = numberInRange(
   schedule.minimum_gap_hours,
   6,
@@ -140,6 +151,29 @@ export const FAILURE_WARNING_AFTER = numberInRange(
   1,
   20,
   'health.failure_warning_after',
+);
+
+export const INBOUND_ALERTS_ENABLED = intake.enabled === true;
+export const INBOUND_MAX_EMAILS = numberInRange(
+  intake.max_emails_per_run,
+  100,
+  1,
+  100,
+  'intake.max_emails_per_run',
+);
+export const INBOUND_MAX_BODY_BYTES = numberInRange(
+  intake.max_body_bytes,
+  1_500_000,
+  10_000,
+  5_000_000,
+  'intake.max_body_bytes',
+);
+export const INBOUND_RETENTION_DAYS = numberInRange(
+  intake.retention_days,
+  30,
+  1,
+  365,
+  'intake.retention_days',
 );
 
 export const REQUEST_TIMEOUT_MS = numberInRange(
@@ -227,7 +261,7 @@ export const ATS_DIRECTORIES = {
 };
 
 export const SUPPORTED_CAREER_OPS = {
-  minimum: '1.24.0',
+  minimum: '1.22.0',
   maximumExclusive: '1.25.0',
   scanHistoryColumns: [
     'url',

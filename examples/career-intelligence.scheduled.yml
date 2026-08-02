@@ -3,35 +3,65 @@ name: Career Intelligence digest
 
 on:
   schedule:
-    - cron: "23 7 * * *"
-    - cron: "43 7 * * *"
-    - cron: "3 8 * * *"
-    - cron: "23 19 * * *"
-    - cron: "43 19 * * *"
-    - cron: "3 20 * * *"
+    # BEGIN GENERATED CRONS
+    - cron: "23 5 * * *"
+    - cron: "43 5 * * *"
+    - cron: "3 6 * * *"
+    - cron: "23 6 * * *"
+    - cron: "43 6 * * *"
+    - cron: "3 7 * * *"
+    - cron: "23 17 * * *"
+    - cron: "43 17 * * *"
+    - cron: "3 18 * * *"
+    - cron: "23 18 * * *"
+    - cron: "43 18 * * *"
+    - cron: "3 19 * * *"
+    # END GENERATED CRONS
   workflow_dispatch:
     inputs:
       mode:
-        description: Run, check, pause, or resume the digest
+        description: Run, validate without email, check, pause, or resume the digest
         required: true
         default: run
         type: choice
-        options: [run, guard-only, pause, resume]
+        options: [run, structured-only, guard-only, pause, resume]
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
-  group: career-intelligence-digest
+  group: career-ops-state-writer
   cancel-in-progress: false
 
 jobs:
+  clock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      in_window: ${{ steps.clock.outputs.in_window }}
+      reason: ${{ steps.clock.outputs.reason }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check the user's local delivery window
+        id: clock
+        run: node extensions/career-intelligence-workflow/scripts/time-window.mjs
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          CAREER_TIME_ZONE: "__CAREER_TIME_ZONE__"
+          CAREER_LOCAL_TIMES: "__CAREER_LOCAL_TIMES__"
+          CAREER_WEEKDAYS_ONLY: "__CAREER_WEEKDAYS_ONLY__"
+
   bootstrap:
+    needs: clock
+    if: needs.clock.outputs.in_window == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     outputs:
       should_run: ${{ steps.gate.outputs.should_run }}
       agent_should_run: ${{ steps.gate.outputs.agent_should_run }}
+      delivery_enabled: ${{ steps.gate.outputs.delivery_enabled }}
       resume_delivery: ${{ steps.gate.outputs.resume_delivery }}
       slot_id: ${{ steps.gate.outputs.slot_id }}
       mode: ${{ steps.gate.outputs.mode }}
@@ -42,7 +72,7 @@ jobs:
         shell: bash
         working-directory: extensions/career-intelligence-workflow
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
@@ -55,7 +85,7 @@ jobs:
             exit 1
           }
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: npm
@@ -103,12 +133,25 @@ jobs:
         if: steps.gate.outputs.should_run == 'true' && steps.gate.outputs.resume_delivery != 'true'
         run: npm run doctor -- --deploy --career-ops-root ../..
 
-      - name: Run zero-token structured feeds and rolling ATS discovery
+      - name: Run the official Career Ops structured scan
+        if: steps.gate.outputs.should_run == 'true' && steps.gate.outputs.resume_delivery != 'true'
+        run: node scripts/run-career-ops-scan.mjs
+        env:
+          CAREER_OPS_ROOT: ../..
+
+      - name: Run supplemental zero-token feeds and rolling ATS discovery
         if: steps.gate.outputs.should_run == 'true' && steps.gate.outputs.resume_delivery != 'true'
         run: node scripts/run-structured-scan.mjs --run-id "${{ github.run_id }}"
         env:
           CAREER_OPS_ROOT: ../..
           CAREER_INTELLIGENCE_EFFECTIVE_MODE: ${{ steps.gate.outputs.mode }}
+          CAREER_INTELLIGENCE_REQUIRE_CAREER_OPS_SCAN: "true"
+
+      - name: Merge official and supplemental structured candidates
+        if: steps.gate.outputs.should_run == 'true' && steps.gate.outputs.resume_delivery != 'true'
+        run: node scripts/prepare-candidates.mjs
+        env:
+          CAREER_OPS_ROOT: ../..
 
       - name: Save the clean structured result
         if: steps.gate.outputs.should_run == 'true' && steps.gate.outputs.resume_delivery != 'true'
@@ -128,13 +171,13 @@ jobs:
     outputs:
       result: ${{ steps.codex.outputs.final-message || steps.claude.outputs.structured_output }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
 
@@ -156,10 +199,10 @@ jobs:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           prompt-file: extensions/career-intelligence-workflow/modes/scheduled-discovery.md
           output-schema-file: extensions/career-intelligence-workflow/schemas/discovery-result.schema.json
-          sandbox: workspace-write
+          permission-profile: ":read-only"
           safety-strategy: drop-sudo
           allow-bots: true
-          codex-args: '["--search","--ephemeral","--config","sandbox_workspace_write.network_access=true"]'
+          codex-args: '["--search","--ephemeral"]'
 
       - name: Run bounded Claude discovery as the final active step
         id: claude
@@ -171,8 +214,8 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: Follow extensions/career-intelligence-workflow/modes/scheduled-discovery.md exactly and return only the required JSON.
           claude_args: >-
-            --max-turns 12
-            --allowedTools "Read,WebSearch,WebFetch,Bash(node *)"
+            --max-turns __MAX_AGENT_TURNS__
+            --allowedTools "Read,WebSearch,WebFetch"
             --json-schema '{"type":"object","required":["schemaVersion","runId","sources","discoveries"],"properties":{"schemaVersion":{"type":"number"},"runId":{"type":"string"},"sources":{"type":"array"},"discoveries":{"type":"array"}}}'
 
   apply_discovery:
@@ -185,12 +228,12 @@ jobs:
         shell: bash
         working-directory: extensions/career-intelligence-workflow
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
 
@@ -224,13 +267,13 @@ jobs:
     outputs:
       result: ${{ steps.codex.outputs.final-message || steps.claude.outputs.structured_output }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
 
@@ -252,10 +295,10 @@ jobs:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           prompt-file: extensions/career-intelligence-workflow/modes/scheduled-evaluate.md
           output-schema-file: extensions/career-intelligence-workflow/schemas/evaluation-result.schema.json
-          sandbox: workspace-write
+          permission-profile: ":read-only"
           safety-strategy: drop-sudo
           allow-bots: true
-          codex-args: '["--search","--ephemeral","--config","sandbox_workspace_write.network_access=true"]'
+          codex-args: '["--search","--ephemeral"]'
 
       - name: Run bounded Claude evaluation as the final active step
         id: claude
@@ -267,13 +310,13 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: Follow extensions/career-intelligence-workflow/modes/scheduled-evaluate.md exactly and return only the required JSON.
           claude_args: >-
-            --max-turns 12
+            --max-turns __MAX_AGENT_TURNS__
             --allowedTools "Read,WebSearch,WebFetch"
             --json-schema '{"type":"object","required":["schemaVersion","runId","evaluations"],"properties":{"schemaVersion":{"type":"number"},"runId":{"type":"string"},"evaluations":{"type":"array"}}}'
 
   deliver:
     needs: [bootstrap, apply_discovery, smart_evaluation]
-    if: always() && needs.bootstrap.outputs.should_run == 'true' && (needs.bootstrap.outputs.resume_delivery == 'true' || needs.bootstrap.outputs.mode == 'discovery' || needs.apply_discovery.result == 'success')
+    if: always() && needs.bootstrap.outputs.should_run == 'true' && needs.bootstrap.outputs.delivery_enabled == 'true' && (needs.bootstrap.outputs.resume_delivery == 'true' || needs.bootstrap.outputs.mode == 'discovery' || needs.apply_discovery.result == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -281,12 +324,12 @@ jobs:
         shell: bash
         working-directory: extensions/career-intelligence-workflow
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
 
@@ -331,3 +374,21 @@ jobs:
         run: npm run status >> "$GITHUB_STEP_SUMMARY"
         env:
           CAREER_INTELLIGENCE_EFFECTIVE_MODE: ${{ needs.bootstrap.outputs.mode }}
+
+  health_alert:
+    needs: [clock, bootstrap, smart_discovery, apply_discovery, smart_evaluation, deliver]
+    if: always() && (needs.clock.result == 'failure' || needs.bootstrap.result == 'failure' || needs.smart_discovery.result == 'failure' || needs.apply_discovery.result == 'failure' || needs.smart_evaluation.result == 'failure' || needs.deliver.result == 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Create or update one private health issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          existing=$(gh issue list --repo "${{ github.repository }}" --state open --search '"Career Intelligence needs attention" in:title' --json number --jq '.[0].number')
+          body="A digest run failed: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\n\nThis is a workflow failure, not evidence that there were no matching jobs. Prepared email state, if any, remains available for a guarded retry."
+          if [ -z "$existing" ]; then
+            gh issue create --repo "${{ github.repository }}" --title "Career Intelligence needs attention" --body "$body"
+          else
+            gh issue comment "$existing" --repo "${{ github.repository }}" --body "$body"
+          fi

@@ -31,13 +31,15 @@ Run this from the Career Ops root:
 npx --yes github:jaikrishnanmurali/career-intelligence-workflow setup
 ```
 
-The installer verifies Career Ops 1.24.x, creates `extensions/career-intelligence-workflow`, installs its dependencies and adds namespaced Codex and Claude Code instructions. It does not send email or enable a schedule.
+The installer verifies the validated Career Ops 1.22.x–1.24.x contract, creates `extensions/career-intelligence-workflow`, installs its dependencies and adds namespaced Codex and Claude Code instructions. It drafts both `config/profile.yml` and `config/sources.yml`; it does not send email, enable alert intake or install a schedule.
 
 Start Codex or Claude Code from the Career Ops root and say:
 
 ```text
 Set up my zero-token 12-hour Discovery Digest.
 ```
+
+The agent now takes over the navigation. It works through eight named stages, explains each check before it runs, and pauses only for a decision, browser sign-in, or permission to send the first email. Setup progress is saved locally without credentials, so a later conversation can continue from the next incomplete stage. The full agent behavior and recovery paths are defined in [Guided onboarding](ONBOARDING.md). If the extension is not installed yet, use [the first prompt](FIRST_PROMPT.md) in Codex, Claude Code, or a website chat to begin from the correct entry point.
 
 ## 3. Review the generated scan profile
 
@@ -51,6 +53,7 @@ The setup agent should show the user:
 - mandatory languages that should block a role;
 - senior titles and people-management signals to penalize or exclude;
 - the direct feeds and ATS families that will run.
+- the proposed LinkedIn, Indeed, Glassdoor, Jobbsafari, IamExpat, karriere.at, Climatebase and Wellfound search or alert lanes selected for the target locations.
 
 This review matters. Career Ops contains rich narrative context; a deterministic scanner needs explicit machine-readable terms. The extension config is a confirmed search projection, not a second CV. When Career Ops goals change, rerun the sync command and review the draft again.
 
@@ -66,13 +69,14 @@ npm test
 npm run smoke
 ```
 
-Then run live structured discovery with email disabled:
+Then run both structured passes with email disabled:
 
 ```powershell
+npm run scan:career-ops
 npm run scan:structured
 ```
 
-This last command contacts the configured public feeds and ATS directories. It may take several minutes. Review `state/candidates.json`, `state/coverage-result.json` and `reports` before enabling delivery.
+The first command runs the official Career Ops scanner. The second contacts the supplemental public feeds and rolling ATS directories and merges any already verified platform-alert leads. They may take several minutes. Review `state/candidates.json`, `state/coverage-result.json` and `reports` before enabling delivery.
 
 ## 5. Configure Resend without sharing the key
 
@@ -109,7 +113,7 @@ gh repo view --json visibility
 
 It must say `PRIVATE`.
 
-## 7. Add email secrets
+## 7. Add email and optional alert-intake secrets
 
 GitHub CLI prompts for each value without putting it in chat:
 
@@ -121,6 +125,16 @@ gh secret set CAREER_DIGEST_TO
 
 The recipient and sender are secrets because this is a private personal deployment.
 
+For the eight-platform intake, create a separate full-access receiving key and a Resend-managed receiving address, then add:
+
+```powershell
+gh secret set RESEND_RECEIVING_API_KEY
+gh secret set RESEND_RECEIVING_ADDRESS
+gh variable set CAREER_ALERT_INTAKE_ENABLED --body true
+```
+
+Follow [the platform-alert guide](PLATFORM_ALERTS.md) one source at a time. Do not mark an alert tested until a manual intake run recognizes it.
+
 ## 8. Install and test the workflow
 
 From the extension folder:
@@ -129,11 +143,13 @@ From the extension folder:
 npm run workflow:install -- --root ../..
 cd ../..
 git add .github/workflows/career-intelligence.yml
+git add .github/workflows/career-intelligence-intake.yml
+git add .github/workflows/career-intelligence-maintenance.yml
 git commit -m "Enable private Career Intelligence digest"
 git push
 ```
 
-In GitHub, open Actions → Career Intelligence digest → Run workflow. Run `guard-only` first. Then run one deliberate `run` and inspect:
+In GitHub, run `guard-only` first. If alert intake is enabled, manually test that workflow next. Then run `structured-only`, which scans without delivering. Only after those checks should you confirm one deliberate `run` and inspect:
 
 - number of jobs scanned;
 - recommendations and freshness labels;
@@ -165,4 +181,4 @@ Without that variable, the structured scanner still runs and the workflow falls 
 
 ## Updating
 
-This release validates Career Ops 1.24.x and its nine-column scan-history format. Update Career Ops and this extension deliberately, rerun the doctor and all tests, perform a no-email structured scan, and only then re-enable the schedule.
+The weekly compatibility workflow reports new Career Ops or extension versions in one private issue; it does not update a live workspace. From the Career Ops root, ask Codex or Claude Code to “Update Career Intelligence safely.” The guided update pauses the digest, preserves state and personal config, updates one layer at a time, validates the nine-column scan-history contract, runs all tests and a no-email scan, and asks before resuming.

@@ -24,10 +24,13 @@ const row = (url, fingerprint, status = 'added') => [
   '',
 ].join('\t');
 
-test('pins Career Ops to the validated 1.24 schema range', () => {
+test('pins Career Ops to the validated 1.22 through 1.24 schema range', () => {
+  assert.equal(supportedCareerOpsVersion('1.22.0'), true);
+  assert.equal(supportedCareerOpsVersion('1.23.9'), true);
   assert.equal(supportedCareerOpsVersion('1.24.0'), true);
   assert.equal(supportedCareerOpsVersion('1.24.9'), true);
-  assert.equal(supportedCareerOpsVersion('1.23.9'), false);
+  assert.equal(supportedCareerOpsVersion('v1.24.1'), true);
+  assert.equal(supportedCareerOpsVersion('1.21.9'), false);
   assert.equal(supportedCareerOpsVersion('1.25.0'), false);
   assert.throws(() => parseScanHistory('url\twrong\n'), /Unsupported.*schema/);
 });

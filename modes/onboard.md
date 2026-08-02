@@ -1,6 +1,12 @@
 # Set up the scheduled digest
 
-Use this mode from the root of an onboarded Career Ops 1.24.x workspace.
+Use this mode from the root of an onboarded Career Ops workspace in the validated 1.22.x–1.24.x range. If Career Ops is not installed yet, follow the bootstrap section below and return to Stage 2 only after its profile and CV are ready.
+
+## Run the guided flow
+
+Read `docs/ONBOARDING.md` completely and follow its eight-stage conversation contract. Resume from `npm run setup:status`; do not restart completed stages blindly. Lead one stage at a time, explain the immediate action before running it, and report the result before moving on.
+
+The agent should run safe checks and commands for the user. Give copy-paste commands only when the current chat cannot run them. Ask one question at a time, and pause only for a real decision, explicit consent, or browser sign-in.
 
 ## Read first
 
@@ -8,28 +14,29 @@ Use this mode from the root of an onboarded Career Ops 1.24.x workspace.
 2. Extension `docs/DIGEST_MODES.md`, `docs/PRIVACY.md` and `config/profile.yml`.
 3. Never ask for an API key in chat.
 
-## Start with Discovery Digest
+## Default product path
 
-Explain that Discovery uses zero model tokens and searches configured public feeds plus rolling Greenhouse, Lever, Ashby and Workday boards. Give concrete limits: a LinkedIn-only result, an Indeed result with no employer-feed copy, a dynamic “Load more” page or an ATS company outside this run's shard may be missed.
+Explain that Discovery uses zero model tokens. It runs the official Career Ops structured scanner, supplemental public feeds, rolling Greenhouse, Lever, Ashby and Workday boards, and any verified leads from the eight platform-alert sources. Give concrete limits: a LinkedIn-only result whose alert never fired, an Indeed lead with no resolvable full specification, a dynamic “Load more” page or an ATS company outside this run's shard may be missed.
 
-Smart Digest is an optional upgrade after Discovery and Resend are proven. It uses a billed Codex or Claude Code cloud worker for Career Ops browser/search gaps and full-description evaluation.
+Smart Digest is an optional upgrade after Discovery and Resend are proven. It uses a billed Codex or Claude Code cloud worker to resolve remaining alert leads, cover Career Ops browser/search gaps and perform full-description evaluation.
 
-## Confirm the deterministic scan profile
-
-The installer has drafted search rules from Career Ops. Show them in short groups and ask the user to correct:
-
-1. Role families, related titles and responsibility terms.
-2. Location groups and priority order.
-3. Languages that should block only when explicitly mandatory.
-4. Senior titles, manager-title treatment and people-management signals.
-5. Enabled direct feeds, ATS families and operating limits.
-
-Do not ask the user to retype their CV or career story. Do not add unsupported experience. Keep `configured: false` until the user approves the displayed rules.
-
-## Validate and deploy
-
-Run the doctor, tests, smoke check and a live no-email structured scan. Explain source failures and zero results separately. Then guide GitHub browser sign-in, verify the repository is private and collect Resend values through `gh secret set`.
-
-Install the workflow only after confirmation. Run `guard-only`, then one deliberate `run`.
+The safe validation order is local no-email scan, private cloud workspace, Resend sending connection, optional receiving connection and platform-by-platform alert tests, `guard-only`, manual intake, `structured-only`, then one explicitly confirmed `run`. Never enable the schedule or send the first email merely because the user asked to begin setup.
 
 If the user later chooses Smart, obtain explicit cloud privacy and cost consent, add only the selected provider credential and set `CAREER_OPS_AGENT_ENABLED=true`.
+
+## Bootstrap when Career Ops is missing
+
+Explain that Career Intelligence deliberately does not recreate the profile, CV, evidence rules, tailoring logic or application tracker. Offer to run the official Career Ops quick start from a user-approved parent folder:
+
+```bash
+npx @santifer/career-ops init
+cd career-ops
+codex
+# or: claude
+```
+
+The agent should perform the commands it can, open the sign-in route when needed, and explain each handoff. Do not claim the ChatGPT or Claude website can install local files. After Career Ops onboarding is complete, return to the Career Ops root and install this extension with the one-command setup.
+
+## Update behavior
+
+Install the weekly compatibility-watch workflow alongside the digest. It opens one private issue when Career Ops or Career Intelligence changes upstream. Never auto-apply an upstream update to a live job-search workspace. Route an approved update through `modes/update.md`.

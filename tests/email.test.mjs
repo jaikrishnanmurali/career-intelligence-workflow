@@ -56,6 +56,24 @@ test('explains Discovery Digest reduced coverage with concrete examples', () => 
   assert.match(digest.text, /dynamic careers page/i);
 });
 
+test('keeps unresolved alert leads visible without calling them recommendations', () => {
+  const digest = buildDigest({
+    ...smartReport,
+    recommended: [],
+    manualReview: [{
+      url: 'https://www.linkedin.com/jobs/view/1234567890',
+      company: 'Company not verified',
+      title: 'Product role from alert',
+      location: 'Location not verified',
+      why: 'A configured alert found the lead, but its full specification was unavailable.',
+      cautions: 'Manual check required.',
+    }],
+  });
+  assert.match(digest.text, /NEEDS A QUICK MANUAL CHECK.*NOT A RECOMMENDATION/i);
+  assert.match(digest.text, /full specification was unavailable/i);
+  assert.match(digest.html, /Manual check required/);
+});
+
 test('treats every Resend 409 as an error, never as proof of delivery', async () => {
   const previous = {
     key: process.env.RESEND_API_KEY,

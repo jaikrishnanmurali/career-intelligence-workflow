@@ -24,13 +24,18 @@ const FILES = [
   'data/applications.md',
   `${extensionRelative}/state/state.json`,
   `${extensionRelative}/state/before-scan.tsv`,
+  `${extensionRelative}/state/career-ops-scan-result.json`,
   `${extensionRelative}/state/run-context.json`,
   `${extensionRelative}/state/coverage-plan.json`,
   `${extensionRelative}/state/coverage-result.json`,
+  `${extensionRelative}/state/inbound-state.json`,
+  `${extensionRelative}/state/intake-candidates.json`,
+  `${extensionRelative}/state/intake-coverage.json`,
   `${extensionRelative}/state/candidates.json`,
   `${extensionRelative}/state/evaluations.json`,
   `${extensionRelative}/state/pending-scanner-state.json`,
   `${extensionRelative}/reports/latest.json`,
+  `${extensionRelative}/reports/intake-latest.json`,
 ];
 
 async function exists(filePath) {

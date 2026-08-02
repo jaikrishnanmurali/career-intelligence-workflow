@@ -10,14 +10,9 @@ export function localDateParts(date, timeZone = 'UTC') {
   return Object.fromEntries(parts.map(({ type, value }) => [type, value]));
 }
 
-function scheduledHour(expression) {
-  const hourField = String(expression || '').trim().split(/\s+/)[1];
-  return /^\d{1,2}$/.test(hourField) ? Number(hourField) : null;
-}
-
 export function slotIdFor(date = new Date(), scheduleExpression = '', timeZone = 'UTC') {
   const parts = localDateParts(date, timeZone);
-  const hour = scheduledHour(scheduleExpression) ?? Number(parts.hour);
+  const hour = Number(parts.hour);
   return `${parts.year}-${parts.month}-${parts.day}-${hour < 13 ? 'morning' : 'evening'}`;
 }
 

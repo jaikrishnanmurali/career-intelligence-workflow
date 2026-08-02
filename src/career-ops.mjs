@@ -19,7 +19,7 @@ async function exists(filePath) {
 }
 
 function semverParts(value) {
-  const match = String(value || '').trim().match(/^(\d+)\.(\d+)\.(\d+)/);
+  const match = String(value || '').trim().match(/^v?(\d+)\.(\d+)\.(\d+)/i);
   return match ? match.slice(1).map(Number) : null;
 }
 

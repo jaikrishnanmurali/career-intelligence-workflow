@@ -21,10 +21,13 @@ const runMode = process.env.RUN_MODE || 'run';
 const slotId = isManual
   ? manualSlotId(process.env.GITHUB_RUN_ID, now)
   : slotIdFor(now, process.env.EVENT_SCHEDULE, TIME_ZONE);
-const guardOnly = runMode !== 'run';
-const force = isManual && runMode === 'run';
+const structuredOnly = isManual && runMode === 'structured-only';
+const runnable = runMode === 'run' || structuredOnly;
+const guardOnly = !runnable;
+const force = isManual && runnable;
 const agentEnabled = String(process.env.AGENT_ENABLED || '').toLowerCase() === 'true';
-const effectiveMode = DIGEST_MODE === 'smart' && agentEnabled ? 'smart' : 'discovery';
+const effectiveMode = !structuredOnly && DIGEST_MODE === 'smart' && agentEnabled ? 'smart' : 'discovery';
+const deliveryEnabled = runMode === 'run';
 const agentShouldRun = shouldRun => shouldRun && effectiveMode === 'smart';
 const state = await readJson(STATE_PATH, { runs: [] });
 const decision = scheduleDecision({
@@ -35,14 +38,16 @@ const decision = scheduleDecision({
   force,
 });
 const shouldRun = guardOnly ? false : decision.shouldRun;
-const reason = guardOnly
-  ? `Guard-only check: ${decision.reason}`
-  : decision.reason;
+let reason = decision.reason;
+if (guardOnly) reason = `Guard-only check: ${decision.reason}`;
+else if (structuredOnly) {
+  reason = `Structured-only validation: ${decision.reason} Email delivery and Smart workers are disabled.`;
+}
 
 if (process.env.GITHUB_OUTPUT) {
   await appendFile(
     process.env.GITHUB_OUTPUT,
-    `should_run=${shouldRun}\nagent_should_run=${agentShouldRun(shouldRun)}\nresume_delivery=${Boolean(decision.resumeDelivery)}\nslot_id=${slotId}\nmode=${effectiveMode}\nprovider=${AGENT_PROVIDER}\nreason=${reason}\n`,
+    `should_run=${shouldRun}\nagent_should_run=${agentShouldRun(shouldRun)}\ndelivery_enabled=${deliveryEnabled}\nresume_delivery=${Boolean(decision.resumeDelivery)}\nslot_id=${slotId}\nmode=${effectiveMode}\nprovider=${AGENT_PROVIDER}\nreason=${reason}\n`,
     'utf8',
   );
 }

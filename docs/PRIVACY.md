@@ -10,9 +10,10 @@ A live deployment contains a real CV, profile, search history and email activity
 | Portals, history and shortlist | Yes | Smart discovery as needed | No |
 | Job descriptions | State may contain links and summaries | Smart Digest only | Fit summary and link in email |
 | Recipient and sender | Secrets/state payload | No | Yes |
+| Forwarded platform alerts | Raw message is not persisted by Career Intelligence; normalized leads and hashed identities only | Smart may resolve or evaluate a normalized lead | Yes, while Resend receives and exposes the message through its API |
 | API credentials | GitHub Actions secrets | Provider receives its own credential | Resend receives its own credential |
 
-Discovery Digest does not send CV or job context to a model provider. It still stores Career Ops data in private GitHub and sends the final digest through Resend.
+Discovery Digest does not send CV or job context to a model provider. It still stores Career Ops data in private GitHub, may retrieve forwarded alerts from Resend when intake is enabled, and sends the final digest through Resend.
 
 ## Default branch versus state branch
 
@@ -44,7 +45,9 @@ The worker prompts restrict purpose and writes, but prompts are not a data-isola
 
 Resend receives the exact message body, sender and recipient. The digest can include employers, titles, locations, URLs, recommendation reasons, cautions and coverage failures. It does not need the full CV.
 
-The `resend.dev` test sender can send only to the account email. A verified domain is needed for normal sending, but the domain does not need to host a live website.
+When platform-alert intake is enabled, Resend also receives the forwarded alert message. Career Intelligence reads a bounded set of new messages and persists only normalized job leads plus hashed message identities. It does not persist raw subjects, bodies, attachments or sender addresses in GitHub state. Resend's own storage and retention policies still apply while it is the receiving provider.
+
+The `resend.dev` test sender can send only to the account email. A verified domain is needed for normal sending to other recipients, but the domain does not need to host a live website. Resend-managed receiving domains can be used without owning a domain.
 
 ## Public project
 

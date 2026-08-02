@@ -15,6 +15,17 @@ schedule:
   timezone: Europe/Stockholm
   weekdays_only: false
   minimum_gap_hours: 6
+  # These are local wall-clock times. The installer generates UTC cron entries
+  # for both standard time and daylight-saving time, then gates each trigger in
+  # this timezone.
+  delivery_times: ["07:23", "07:43", "08:03", "19:23", "19:43", "20:03"]
+
+intake:
+  # Enable after the eight platform alerts and Resend Receiving are tested.
+  enabled: false
+  max_emails_per_run: 100
+  max_body_bytes: 1500000
+  retention_days: 30
 
 scanner:
   direct_sources:

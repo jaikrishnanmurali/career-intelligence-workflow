@@ -1,6 +1,6 @@
 # Career Ops integration
 
-Career Ops is the required career and application foundation. Career Intelligence adds unattended structured discovery, stateful retries and email delivery.
+Career Ops is the required career and application foundation. Career Intelligence adds unattended execution of Career Ops discovery, supplemental sources, platform-alert intake, stateful retries and email delivery.
 
 ## Career Ops owns
 
@@ -12,7 +12,9 @@ Career Ops is the required career and application foundation. Career Intelligenc
 
 ## Career Intelligence owns
 
-- scheduled public-feed and rolling ATS discovery;
+- scheduling the official Career Ops structured scanner before every eligible digest;
+- supplemental public-feed and rolling ATS discovery;
+- normalized alert intake for the selected broader platforms;
 - the reviewed machine-readable scan projection;
 - deterministic normalization, filtering, freshness and ranking;
 - bounded live-page checks;
@@ -44,7 +46,9 @@ Run Codex or Claude Code from the Career Ops root so the parent instructions are
 
 ## Discovery mode
 
-The scheduled core is `scripts/run-structured-scan.mjs`. It does not invoke Career Ops `scan.mjs` and does not consume model tokens. It searches the configured feed and ATS connectors and reports the browser and broad-search layers it did not run.
+The scheduled core invokes Career Ops `scan.mjs` first. Career Intelligence then runs its supplemental public-feed and rolling ATS scanner and adds any verified normalized alert leads. These steps do not consume model tokens. Browser interaction and adaptive broad web search are still omitted and must be reported as reduced coverage.
+
+Platform alerts do not bypass Career Ops evaluation standards. A lead must resolve to a complete, live employer or ATS specification before it can be automatically evaluated or recommended. Unresolved leads remain visible as manual review work.
 
 ## Smart mode
 
@@ -54,4 +58,4 @@ The structured scanner remains eligible even when Smart is disabled or the model
 
 ## Version contract
 
-This release supports Career Ops 1.24.x and validates the nine-column `data/scan-history.tsv` schema before using Smart integration. A schema change fails closed instead of silently corrupting history.
+This release supports the validated Career Ops 1.22.x–1.24.x range and checks the nine-column `data/scan-history.tsv` schema before scanning. A weekly workflow reports upstream releases but never applies one automatically. The guided updater pauses, backs up, updates and validates before the user resumes the digest. A schema change fails closed instead of silently corrupting history.

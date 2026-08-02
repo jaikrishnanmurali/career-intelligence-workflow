@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { integrateCareerOps } from '../scripts/integrate-career-ops.mjs';
 import { supportedCareerOpsVersion } from '../src/career-ops.mjs';
 import { importCareerOpsProfile } from '../scripts/import-career-ops-profile.mjs';
+import { provisionSources } from '../scripts/provision-sources.mjs';
 
 const SOURCE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const EXTENSION_NAME = 'career-intelligence-workflow';
@@ -31,6 +32,7 @@ const DISTRIBUTION_ENTRIES = [
   'SECURITY.md',
   'bin',
   'config/profile.example.yml',
+  'config/source-packs.example.yml',
   'docs',
   'examples',
   'integrations',
@@ -119,7 +121,7 @@ export async function validateCareerOpsWorkspace(careerOpsRoot) {
   }
   if (!supportedCareerOpsVersion(packageJson.version)) {
     throw new Error(
-      `Career Ops ${packageJson.version || 'unknown'} is not supported. This release requires Career Ops 1.24.x.`,
+      `Career Ops ${packageJson.version || 'unknown'} is not supported. This release requires the validated >=1.22.0 and <1.25.0 contract.`,
     );
   }
   return { root, version: packageJson.version || 'unknown' };
@@ -173,6 +175,10 @@ export async function installIntoCareerOps(careerOpsRoot, {
       workspace.root,
       path.join(stagingRoot, 'config', 'profile.yml'),
     );
+    await provisionSources({
+      extensionRoot: stagingRoot,
+      careerOpsRoot: workspace.root,
+    });
     if (!skipDependencies) {
       await runCommand('npm', ['install', '--ignore-scripts'], stagingRoot);
     }
@@ -204,7 +210,7 @@ function printHelp() {
     'Usage:',
     '  career-intelligence-workflow setup [--root <career-ops-directory>]',
     '',
-    'Setup requires Career Ops 1.24.x with a completed profile and cv.md.',
+    'Setup requires the validated Career Ops >=1.22.0 and <1.25.0 contract with a completed profile and cv.md.',
     'It installs a namespaced extension. It does not send email or enable a schedule.',
     '',
   ].join('\n'));
@@ -236,9 +242,9 @@ if (isMain) {
           '',
           'Next:',
           '1. Open Codex or Claude from the Career Ops root.',
-          '2. Say: "Set up my zero-token 12-hour Discovery Digest."',
-          '3. Review the generated role, location and language scan rules.',
-          '4. Run the doctor, tests and no-email structured scan before enabling delivery.',
+          '2. Say: "Set up my 12-hour Career Intelligence digest."',
+          '3. Review the generated role, location, language and platform source plan.',
+          '4. The agent will validate both scanners, email and optional platform alerts before enabling delivery.',
           '',
           'No email was sent and no recurring workflow was enabled.',
           '',

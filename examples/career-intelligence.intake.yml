@@ -1,0 +1,71 @@
+# Installed only in the root of a private Career Ops repository.
+name: Career Intelligence alert intake
+
+on:
+  schedule:
+    - cron: "17 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: career-ops-state-writer
+  cancel-in-progress: false
+
+jobs:
+  intake:
+    if: github.event_name == 'workflow_dispatch' || vars.CAREER_ALERT_INTAKE_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+        working-directory: extensions/career-intelligence-workflow
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Refuse public repositories
+        working-directory: .
+        run: test "${{ github.event.repository.private }}" = "true"
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Install locked dependencies
+        working-directory: .
+        run: |
+          npm ci --ignore-scripts
+          npm ci --ignore-scripts --prefix extensions/career-intelligence-workflow
+
+      - name: Restore shared intake and digest state
+        run: node scripts/state-sync.mjs restore
+
+      - name: Poll and normalize forwarded platform alerts
+        run: node scripts/poll-alerts.mjs ${{ github.event_name == 'workflow_dispatch' && '--force' || '' }}
+        env:
+          RESEND_RECEIVING_API_KEY: ${{ secrets.RESEND_RECEIVING_API_KEY }}
+          RESEND_RECEIVING_ADDRESS: ${{ secrets.RESEND_RECEIVING_ADDRESS }}
+
+      - name: Save normalized intake state
+        run: node scripts/state-sync.mjs save
+
+  alert_failure:
+    needs: intake
+    if: always() && needs.intake.result == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create one private health issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          existing=$(gh issue list --repo "${{ github.repository }}" --state open --search '"Career Intelligence needs attention" in:title' --json number --jq '.[0].number')
+          if [ -z "$existing" ]; then
+            gh issue create --repo "${{ github.repository }}" --title "Career Intelligence needs attention" --body "The platform-alert intake failed. Open the latest Actions run for the exact failing stage. No conclusion about job availability was made."
+          else
+            gh issue comment "$existing" --repo "${{ github.repository }}" --body "Platform-alert intake failed again: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
