@@ -25,6 +25,6 @@ Career Intelligence Workflow is a portfolio-led open-source Career Ops companion
 
 - Rebuilding Career Ops candidate onboarding, CV generation, evaluation, or tracking.
 - Automatic application submission or employer messaging.
-- Model-based ranking inside scheduled runs.
+- Replacing the deterministic core with an unbounded model-driven scan.
 - Scraping behind authentication or bypassing access controls.
 - Public storage of candidate profiles, CVs, reports, or search history.

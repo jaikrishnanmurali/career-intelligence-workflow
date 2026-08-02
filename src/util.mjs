@@ -7,7 +7,8 @@ import {
 } from 'node:fs/promises';
 import path from 'node:path';
 
-import { REQUEST_TIMEOUT_MS, TIME_ZONE } from './config.mjs';
+import { TIME_ZONE } from './config.mjs';
+const REQUEST_TIMEOUT_MS = 20_000;
 
 export function normalizeText(value) {
   return String(value || '')
@@ -215,4 +216,3 @@ export async function loadLocalEnv(filePath) {
     if (error?.code !== 'ENOENT') throw error;
   }
 }
-

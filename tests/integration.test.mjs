@@ -25,6 +25,10 @@ async function createCareerOpsFixture(root) {
   await mkdir(path.join(root, 'modes'), { recursive: true });
   await mkdir(path.join(root, 'config'), { recursive: true });
   await writeFile(path.join(root, 'AGENTS.md'), '# Career Ops\n', 'utf8');
+  await writeFile(path.join(root, 'modes', 'scan.md'), '# Scan contract\n', 'utf8');
+  await writeFile(path.join(root, 'scan.mjs'), 'process.exit(0);\n', 'utf8');
+  await writeFile(path.join(root, 'portals.yml'), 'search_queries: []\ntracked_companies: []\n', 'utf8');
+  await writeFile(path.join(root, 'fingerprint-core.mjs'), 'export const fingerprintText = () => "";\n', 'utf8');
   await writeFile(path.join(root, 'cv.md'), '# Fictional CV\n', 'utf8');
   await writeFile(
     path.join(root, 'package.json'),
@@ -107,7 +111,7 @@ test('refuses to overwrite a different existing integration skill', async () => 
   }
 });
 
-test('imports search foundations without copying Career Ops contact data', async () => {
+test('creates a reviewable zero-token scan draft without copying contact data', async () => {
   const temp = await mkdtemp(path.join(os.tmpdir(), 'career-intelligence-import-'));
   try {
     const careerOpsRoot = path.join(temp, 'career-ops');
@@ -118,11 +122,11 @@ test('imports search foundations without copying Career Ops contact data', async
     const text = await readFile(output, 'utf8');
     const imported = parse(text);
     assert.equal(imported.configured, false);
-    assert.deepEqual(
-      imported.search.role_families.map((role) => role.label),
-      ['Customer Success Specialist', 'Community Operations'],
-    );
-    assert.ok(imported.search.location.groups[0].terms.includes('dublin'));
+    assert.equal(imported.version, 2);
+    assert.equal(imported.digest.mode, 'discovery');
+    assert.equal(imported.digest.include_unscored, true);
+    assert.ok(imported.scanner.direct_sources.includes('arbeitnow'));
+    assert.ok(Array.isArray(imported.search_profile.role_families));
     assert.doesNotMatch(text, /Fictional Person|private@example\.test/);
   } finally {
     await rm(temp, { recursive: true, force: true });
@@ -149,7 +153,7 @@ test('one-command installer copies the extension and leaves delivery disabled', 
     );
     assert.equal(
       await readFile(path.join(careerOpsRoot, '.claude', 'skills', 'career-intelligence', 'SKILL.md'), 'utf8')
-        .then((text) => text.includes('email and job-discovery companion')),
+        .then((text) => text.includes('scheduling and email companion')),
       true,
     );
     await assert.rejects(
@@ -194,11 +198,14 @@ test('workflow installer adds three guarded attempts per delivery slot', async (
 
     const destination = await installWorkflow(careerOpsRoot);
     const workflow = await readFile(destination, 'utf8');
-    assert.equal((workflow.match(/timezone: "UTC"/g) || []).length, 6);
+    assert.equal((workflow.match(/- cron:/g) || []).length, 6);
     assert.match(workflow, /guard-only/);
     assert.match(workflow, /schedule-guard\.mjs/);
-    assert.match(workflow, /queue: max/);
-    assert.match(workflow, /github.event.repository.default_branch/);
+    assert.match(workflow, /state-sync\.mjs restore/);
+    assert.match(workflow, /state-sync\.mjs save/);
+    assert.match(workflow, /openai\/codex-action@v1/);
+    assert.match(workflow, /anthropics\/claude-code-action@v1/);
+    assert.match(workflow, /repository\.private/);
     assert.match(workflow, /--slot/);
 
     await assert.rejects(installWorkflow(careerOpsRoot), /Refusing to overwrite/);

@@ -4,7 +4,7 @@ import { appendFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { TIME_ZONE } from './config.mjs';
+import { AGENT_PROVIDER, DIGEST_MODE, TIME_ZONE } from './config.mjs';
 import {
   manualSlotId,
   scheduleDecision,
@@ -21,8 +21,11 @@ const runMode = process.env.RUN_MODE || 'run';
 const slotId = isManual
   ? manualSlotId(process.env.GITHUB_RUN_ID, now)
   : slotIdFor(now, process.env.EVENT_SCHEDULE, TIME_ZONE);
-const guardOnly = runMode === 'guard-only';
+const guardOnly = runMode !== 'run';
 const force = isManual && runMode === 'run';
+const agentEnabled = String(process.env.AGENT_ENABLED || '').toLowerCase() === 'true';
+const effectiveMode = DIGEST_MODE === 'smart' && agentEnabled ? 'smart' : 'discovery';
+const agentShouldRun = shouldRun => shouldRun && effectiveMode === 'smart';
 const state = await readJson(STATE_PATH, { runs: [] });
 const decision = scheduleDecision({
   state,
@@ -39,7 +42,7 @@ const reason = guardOnly
 if (process.env.GITHUB_OUTPUT) {
   await appendFile(
     process.env.GITHUB_OUTPUT,
-    `should_run=${shouldRun}\nslot_id=${slotId}\nreason=${reason}\n`,
+    `should_run=${shouldRun}\nagent_should_run=${agentShouldRun(shouldRun)}\nresume_delivery=${Boolean(decision.resumeDelivery)}\nslot_id=${slotId}\nmode=${effectiveMode}\nprovider=${AGENT_PROVIDER}\nreason=${reason}\n`,
     'utf8',
   );
 }

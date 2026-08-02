@@ -1,115 +1,168 @@
 # Complete setup
 
-This guide adds a private, twice-daily email digest to an existing Career Ops workspace. Career Intelligence is not a replacement for Career Ops.
+This guide installs Career Intelligence inside Career Ops and moves the complete workspace to a private GitHub repository. GitHub Actions then runs the scan while the user's computer is off.
 
-## Prerequisites
+## Before you start
 
-- Career Ops installed and onboarded with `config/profile.yml` and `cv.md`.
-- Node.js 22 or newer for this extension.
-- Git and internet access.
-- Codex or Claude for conversational setup.
-- A Resend account only when email is enabled.
-- A private GitHub repository only when cloud scheduling is enabled.
+You need Node.js 22 or newer, Git, a GitHub account and Codex CLI/Desktop or Claude Code. A Resend account is needed when email is enabled.
 
-## 1. Install inside Career Ops
+The ChatGPT and Claude websites cannot run these installation commands. PowerShell, macOS Terminal, Linux Terminal and the VS Code terminal can.
 
-From the Career Ops root:
+## 1. Install and onboard Career Ops
 
-```bash
-npx --yes github:jaikrishnanmurali/career-intelligence-workflow init
-```
+If Career Ops is not installed:
 
-The installer refuses to continue when Career Ops onboarding is incomplete or when `extensions/career-intelligence-workflow` already exists. It does not overwrite an active extension.
-
-Expected result:
-
-```text
-career-ops/
-  .agents/skills/career-intelligence/SKILL.md
-  .claude/skills/career-intelligence/SKILL.md
-  extensions/career-intelligence-workflow/
-```
-
-No email is sent and no workflow is enabled.
-
-## 2. Complete conversational onboarding
-
-Start Codex or Claude from the Career Ops root:
-
-```bash
+```powershell
+npx @santifer/career-ops init
+cd career-ops
 codex
-# or
-claude
+# or: claude
 ```
 
-Ask:
+Complete its chat onboarding first. `config/profile.yml`, `cv.md` and `portals.yml` should contain the real career context.
+
+People who already use Career Ops can keep their existing local agent, including agents this extension does not support. Codex and Claude Code are required only for this extension's guided setup and optional Smart cloud runner.
+
+## 2. Install Career Intelligence
+
+Run this from the Career Ops root:
+
+```powershell
+npx --yes github:jaikrishnanmurali/career-intelligence-workflow setup
+```
+
+The installer verifies Career Ops 1.24.x, creates `extensions/career-intelligence-workflow`, installs its dependencies and adds namespaced Codex and Claude Code instructions. It does not send email or enable a schedule.
+
+Start Codex or Claude Code from the Career Ops root and say:
 
 ```text
-Set up my 12-hour Career Intelligence job digest.
+Set up my zero-token 12-hour Discovery Digest.
 ```
 
-The installer has already created an unconfirmed draft from Career Ops. The agent reads the Career Ops profile and CV, asks only for missing scan-specific rules, and shows a plain-language summary before writing.
+## 3. Review the generated scan profile
 
-The extension profile contains search terms and eligibility rules. It must not contain the candidate's email, phone number, full CV, narrative, or proof points.
+The installer drafts deterministic role, location and language rules from Career Ops. It deliberately leaves `configured: false`.
 
-## 3. Validate without email
+The setup agent should show the user:
 
-The agent runs these commands from the extension:
+- each role family and its related title terms;
+- responsibility terms that allow adjacent titles to qualify;
+- preferred location groups and their order;
+- mandatory languages that should block a role;
+- senior titles and people-management signals to penalize or exclude;
+- the direct feeds and ATS families that will run.
 
-```bash
+This review matters. Career Ops contains rich narrative context; a deterministic scanner needs explicit machine-readable terms. The extension config is a confirmed search projection, not a second CV. When Career Ops goals change, rerun the sync command and review the draft again.
+
+After review, set `configured: true` in `extensions/career-intelligence-workflow/config/profile.yml`.
+
+## 4. Validate without sending email
+
+From `career-ops/extensions/career-intelligence-workflow`:
+
+```powershell
 npm run doctor -- --career-ops-root ../..
 npm test
 npm run smoke
 ```
 
-Expected behavior:
+Then run live structured discovery with email disabled:
 
-- diagnostics detect the Career Ops root;
-- the extension profile says `configured: true`;
-- all tests pass;
-- the smoke run is bounded and explicitly says no email was sent.
-
-Zero recommendations can be a valid result. Review source coverage and rejection reasons before widening rules.
-
-## 4. Configure Resend
-
-Follow [RESEND.md](RESEND.md). Do not put the key in Career Ops YAML, the extension profile, an issue, or an agent conversation.
-
-Validate the local secret without printing it:
-
-```bash
-npm run doctor -- --email --career-ops-root ../..
+```powershell
+npm run scan:structured
 ```
 
-Send one email only when intended:
+This last command contacts the configured public feeds and ATS directories. It may take several minutes. Review `state/candidates.json`, `state/coverage-result.json` and `reports` before enabling delivery.
 
-```bash
-npm run scan -- --send
+## 5. Configure Resend without sharing the key
+
+For a personal test, Resend's test sender can normally deliver to the email address registered to the Resend account. A custom sender or other recipients require a verified domain. Read [Resend setup](RESEND.md) and confirm the current Resend rules in that account.
+
+Never paste a key into an AI chat or save it in YAML.
+
+## 6. Make one private repository canonical
+
+From the Career Ops root, sign in through GitHub CLI:
+
+```powershell
+gh auth login --web
 ```
 
-## 5. Move the Career Ops workspace to a private GitHub repository
+The command prints a browser sign-in flow. If it cannot open a browser automatically, open the displayed link and enter the one-time code.
 
-The live profile, CV, state, report, and workflow reveal job-search activity. Confirm the destination repository is private before pushing.
+If this folder is not already a repository:
 
-The extension profile is ignored by default. Add it deliberately only to the private repository:
-
-```bash
+```powershell
+git init
+git add .
+git add -f config/profile.yml cv.md portals.yml
 git add -f extensions/career-intelligence-workflow/config/profile.yml
-git add extensions/career-intelligence-workflow/package-lock.json
+git commit -m "Set up private Career Ops workspace"
+gh repo create career-ops-private --private --source=. --remote=origin --push
 ```
 
-Do not commit `.env`.
+If a private remote already exists, use it. Do not create a second active workspace. Confirm the result:
 
-## 6. Install and test the workflow
+```powershell
+gh repo view --json visibility
+```
 
-From the extension:
+It must say `PRIVATE`.
 
-```bash
+## 7. Add email secrets
+
+GitHub CLI prompts for each value without putting it in chat:
+
+```powershell
+gh secret set RESEND_API_KEY
+gh secret set CAREER_DIGEST_FROM
+gh secret set CAREER_DIGEST_TO
+```
+
+The recipient and sender are secrets because this is a private personal deployment.
+
+## 8. Install and test the workflow
+
+From the extension folder:
+
+```powershell
 npm run workflow:install -- --root ../..
+cd ../..
+git add .github/workflows/career-intelligence.yml
+git commit -m "Enable private Career Intelligence digest"
+git push
 ```
 
-Then follow [AUTOMATION.md](AUTOMATION.md) to add secrets, run `guard-only` without scanning or emailing, test one deliberate delivery, inspect its saved state, and only then retain the recurring schedule.
+In GitHub, open Actions → Career Intelligence digest → Run workflow. Run `guard-only` first. Then run one deliberate `run` and inspect:
+
+- number of jobs scanned;
+- recommendations and freshness labels;
+- each source's completed, partial or failed status;
+- the reduced-coverage examples;
+- whether a zero-result run correctly skipped email;
+- the private `career-intelligence-state` branch.
+
+## 9. Optional: enable Smart Digest
+
+Do this only after Discovery and Resend are working.
+
+Change `digest.mode` to `smart`, choose `codex` or `claude`, and add the corresponding provider secret:
+
+```powershell
+gh secret set OPENAI_API_KEY
+# or
+claude setup-token
+gh secret set CLAUDE_CODE_OAUTH_TOKEN
+```
+
+Then enable the independent feature flag:
+
+```powershell
+gh variable set CAREER_OPS_AGENT_ENABLED --body true
+```
+
+Without that variable, the structured scanner still runs and the workflow falls back to Discovery Digest. A ChatGPT or Codex subscription does not itself provide API usage inside GitHub Actions. Set a provider-side spending limit before enabling Smart.
 
 ## Updating
 
-The installer does not overwrite an existing extension. Until an automated updater is released, review upstream changes and update the extension deliberately. Preserve the private profile, `.env`, state, and reports, then rerun tests and diagnostics.
+This release validates Career Ops 1.24.x and its nine-column scan-history format. Update Career Ops and this extension deliberately, rerun the doctor and all tests, perform a no-email structured scan, and only then re-enable the schedule.

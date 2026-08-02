@@ -1,19 +1,17 @@
-# Run or inspect a digest scan
+# Run or inspect a digest
 
-Use this mode for a no-email smoke scan, a full preview, a requested email, or inspection of `reports/latest.json`.
+The extension's deterministic engine is the scheduled scanner. Career Ops remains the career context and application system.
 
 1. Run `npm run doctor -- --career-ops-root ../..`.
-2. If the profile is unconfirmed, stop and return to onboarding.
-3. Use `npm run smoke` for a bounded live check. It never sends email.
-4. Use `npm run scan` for a full local preview.
-5. Use `npm run scan -- --send` only after the user explicitly requests a real email and `npm run doctor -- --email --career-ops-root ../..` passes.
+2. Read the configured mode and latest coverage receipt.
+3. For a local structured check, run `npm run scan:structured` from the extension folder. Do not send email.
+4. Smart browser/search-gap work follows `modes/scheduled-discovery.md`; bounded evaluation follows `modes/scheduled-evaluate.md`.
+5. A requested real email must use the durable prepare-then-deliver phases and requires explicit confirmation.
 
-Report title, company, location, fit band, freshness evidence, match reasons, cautions, and URL for each recommendation. Keep these labels exact:
+Report all new jobs in Recommended, Possible and Other / unscored groups. A model score cannot remove a discovery. Name hard blockers and source failures separately.
 
-- `verified`: an exact timestamp is inside the lookback window;
-- `likely`: relative evidence such as "posted today" is current but not exact;
-- `newly_discovered`: the live URL is new to saved state but its posting age is unknown.
+For Discovery Digest, always say that browser and broad web-search layers did not run and give at least one included and one possibly-missed example.
 
-If nothing passes, report source coverage and rejection reasons. Never apply, contact an employer, tailor a CV, or change the Career Ops tracker.
+For Smart Digest, report completed sources as a fraction and list partial or failed sources. Never turn “sources attempted” into “every internet job was found.”
 
-When the user selects a role, pass its URL and evidence summary to the Career Ops evaluation pipeline.
+When the user selects a role, pass its URL and evidence summary to the normal Career Ops evaluation pipeline. Never apply, contact an employer, tailor a CV or change the tracker.

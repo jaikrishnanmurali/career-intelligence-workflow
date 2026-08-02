@@ -1,55 +1,57 @@
-# How Career Intelligence uses Career Ops
+# Career Ops integration
 
-Career Ops is the required foundation. This extension adds unattended discovery and email delivery without recreating its candidate or application system.
+Career Ops is the required career and application foundation. Career Intelligence adds unattended structured discovery, stateful retries and email delivery.
 
-## Source-of-truth split
+## Career Ops owns
 
-Career Ops owns:
+- the complete candidate profile and CV;
+- narrative experience rules and evidence;
+- portal and broad-search instructions;
+- interactive evaluation and tailoring;
+- shortlist, tracker, outcomes and application work.
 
-- identity and contact data;
-- CV and evidence;
-- target roles and career narrative;
-- evaluation, tailoring, tracker, and application workflow.
+## Career Intelligence owns
 
-Career Intelligence owns:
+- scheduled public-feed and rolling ATS discovery;
+- the reviewed machine-readable scan projection;
+- deterministic normalization, filtering, freshness and ranking;
+- bounded live-page checks;
+- source coverage receipts and health history;
+- logical-slot retries, durable outbox state and Resend delivery;
+- optional isolated Codex or Claude Code gap discovery and evaluation.
 
-- scan-specific adjacent titles and responsibility terms;
-- hard scan exclusions and language blockers;
-- ordered search locations;
-- experience and manager ranking cautions;
-- freshness evidence, deduplication, report state, and Resend delivery.
+## Why a scan projection exists
 
-## Import behavior
+Career Ops can reason over prose in a profile and CV. A zero-token scanner cannot. Setup therefore drafts explicit title terms, responsibility terms, location groups, language blockers and seniority weights from Career Ops.
 
-During installation, `scripts/import-career-ops-profile.mjs` reads Career Ops `config/profile.yml` and creates an extension draft.
+The user must review that draft. It is not a second CV, and it must not contain invented experience. When Career Ops goals change, regenerate or edit the projection and confirm it again before scheduling.
 
-It imports role names, archetype fit, city, country, and authorized locations. It does not copy the candidate's name, email, phone number, CV text, narrative, or proof points. The generated draft says `configured: false` until the setup conversation fills and confirms the missing scan rules.
+## Installation layout
 
-The deterministic importer is intentionally conservative. It does not infer experience, unsupported languages, manager preference, or adjacent job titles from silence.
-
-## Skill adapters
-
-The installer adds namespaced adapters at:
+The supported layout is:
 
 ```text
-career-ops/.agents/skills/career-intelligence/SKILL.md
-career-ops/.claude/skills/career-intelligence/SKILL.md
+career-ops/
+  config/profile.yml
+  cv.md
+  portals.yml
+  extensions/
+    career-intelligence-workflow/
+      config/profile.yml
 ```
 
-Each adapter points back to the extension. It does not modify Career Ops root instructions, modes, CV, tracker, or templates. A different existing adapter is never overwritten without an explicit reviewed force operation.
+Run Codex or Claude Code from the Career Ops root so the parent instructions are loaded before the namespaced extension skill.
 
-## Handoff
+## Discovery mode
 
-1. Career Intelligence discovers and emails recommendations.
-2. The user chooses a role.
-3. The agent passes its URL and freshness/fit evidence to Career Ops.
-4. Career Ops evaluates the role and decides what later artifacts to prepare.
-5. The user remains responsible for the final application.
+The scheduled core is `scripts/run-structured-scan.mjs`. It does not invoke Career Ops `scan.mjs` and does not consume model tokens. It searches the configured feed and ATS connectors and reports the browser and broad-search layers it did not run.
 
-Career Intelligence never creates a tailored CV, adds a tracker row, fills a form, clicks Apply, or contacts an employer.
+## Smart mode
 
-## Why the scheduled scanner remains separate
+Smart mode starts with the same deterministic result. A bounded agent then follows Career Ops search instructions for tracked-company and broad web-search gaps. Validated discoveries are appended through Career Ops helpers so URL history and `jd_fingerprint` remain compatible. A second bounded pass evaluates complete descriptions.
 
-Career Ops includes interactive scanning and local scheduling recipes. This extension keeps a separate bounded scanner because its job is unattended cloud delivery: broad rolling ATS coverage, exact-versus-weak freshness labels, saved email state, and a Resend digest. The scanner still starts from the Career Ops profile and returns selected jobs to the Career Ops pipeline.
+The structured scanner remains eligible even when Smart is disabled or the model worker fails.
 
-This boundary keeps the email run deterministic and prevents a twice-daily schedule from spending model tokens on full evaluations.
+## Version contract
+
+This release supports Career Ops 1.24.x and validates the nine-column `data/scan-history.tsv` schema before using Smart integration. A schema change fails closed instead of silently corrupting history.

@@ -1,7 +1,5 @@
 # Claude Code guidance
 
-Career Intelligence is installed inside Career Ops. Start Claude from the Career Ops root and follow its `AGENTS.md` before using this extension.
+Start Claude Code from the Career Ops root and follow its `AGENTS.md` before using this extension. The installed `/career-intelligence` adapter points to this repository’s canonical skill.
 
-The installed `/career-intelligence` adapter points to this repository's canonical skill at `.agents/skills/career-intelligence/SKILL.md`. Career Ops remains responsible for evaluation, CV tailoring, tracking, and application work. This extension owns deterministic discovery and Resend digests only.
-
-The scheduled scanner must not call Claude or any other model API.
+Career Ops remains the career and application system. Career Intelligence runs a configurable zero-token scanner and sends private digests. Smart Digest may add a bounded Claude Code cloud step; Discovery Digest uses public feeds and rolling ATS boards but still has reduced coverage. Never imply that Discovery directly crawls LinkedIn, Indeed or every careers page.

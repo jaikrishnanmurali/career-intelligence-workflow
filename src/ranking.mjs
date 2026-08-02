@@ -1,17 +1,21 @@
+import { createHash } from 'node:crypto';
+
 import {
   DEFAULT_MAX_PAGE_VERIFICATIONS,
-  EXPERIENCE_PROFILE,
-  GLOBAL_SCOPE_SIGNALS,
-  HOME_LOCATION_GROUP_ID,
+  HOME_LOCATION_IDS,
   IC_TITLE_SIGNALS,
+  IC_TITLE_BONUS,
   LOCATION_GROUPS,
   LOOKBACK_HOURS,
-  MANAGER_PREFERENCE,
-  NON_TARGET_COUNTRY_TERMS,
+  MANAGER_TITLE_PENALTY,
   OBVIOUS_NON_EU_ONLY,
+  PEOPLE_MANAGEMENT_PENALTY,
+  PRIORITY_SCORE,
   ROLE_FAMILIES,
+  TITLE_CONTEXT_TERMS,
   TITLE_EXCLUDES,
   UNSUPPORTED_LOCAL_LANGUAGES,
+  WORTH_LOOK_SCORE,
 } from './config.mjs';
 import {
   canonicalUrl,
@@ -34,6 +38,14 @@ function containsTerm(text, term) {
   return text.includes(normalized);
 }
 
+export function postingIdentity(job) {
+  const material = [job?.company, job?.title, job?.location]
+    .map(normalizeText)
+    .filter(Boolean)
+    .join('\n');
+  return material ? createHash('sha256').update(material).digest('hex').slice(0, 24) : '';
+}
+
 export function familyFor(job) {
   const title = normalizeText(job.title);
   const body = normalizeText(job.description);
@@ -42,27 +54,8 @@ export function familyFor(job) {
     const titleMatches = family.terms.filter((term) => containsTerm(title, term));
     const bodyMatches = family.responsibilityTerms.filter((term) => containsTerm(body, term));
     const genericIcTitle = IC_TITLE_SIGNALS.some((term) => containsTerm(title, term));
-    const targetContextInTitle = [
-      'marketing',
-      'product',
-      'partner',
-      'partnership',
-      'commercial',
-      'market',
-      'sustainability',
-      'circular',
-      'climate',
-      'environmental',
-      'growth',
-      'operations',
-      'delivery',
-      'implementation',
-      'onboarding',
-      'customer',
-      'program',
-      'programme',
-      'project',
-    ].some((term) => containsTerm(title, term));
+    const targetContextInTitle = TITLE_CONTEXT_TERMS
+      .some((term) => containsTerm(title, term));
     if (
       titleMatches.length === 0
       && !(genericIcTitle && targetContextInTitle && bodyMatches.length >= 2)
@@ -87,13 +80,6 @@ export function locationFor(value) {
   if (OBVIOUS_NON_EU_ONLY.some((term) => text.includes(normalizeText(term)))) {
     return { eligible: false, reason: 'Location is explicitly outside the configured search scope.' };
   }
-  const nonTargetCountry = NON_TARGET_COUNTRY_TERMS
-    .some((term) => text.includes(normalizeText(term)));
-  const explicitlyGlobal = GLOBAL_SCOPE_SIGNALS
-    .some((term) => text.includes(normalizeText(term)));
-  if (nonTargetCountry && !explicitlyGlobal) {
-    return { eligible: false, reason: 'Location is outside the configured search scope.' };
-  }
   for (const group of LOCATION_GROUPS) {
     if (group.terms.some((term) => text.includes(normalizeText(term)))) {
       return { eligible: true, group, caution: '' };
@@ -103,12 +89,12 @@ export function locationFor(value) {
     return {
       eligible: true,
       group: { id: 'unknown', label: 'Location unconfirmed', score: 3 },
-      caution: 'Location is not stated; confirm eligibility manually.',
+      caution: 'Location is not stated; confirm eligibility before applying.',
     };
   }
   return {
     eligible: false,
-    reason: 'Location does not match any configured location group.',
+    reason: 'Location does not match a configured location group.',
   };
 }
 
@@ -121,9 +107,7 @@ export function languageBlocker(value) {
     ['french', /\b(?:francais courant|maitrise du francais|francais obligatoire|niveau c1 en francais|francais.{0,50}(?:professionnel(?:le)?s?|niveau b2|b2\+)|(?:professionnel(?:le)?s?|niveau b2|b2\+).{0,50}francais)\b/i],
   ];
   for (const [language, pattern] of localLanguagePatterns) {
-    if (UNSUPPORTED_LOCAL_LANGUAGES.includes(language) && pattern.test(text)) {
-      return language;
-    }
+    if (UNSUPPORTED_LOCAL_LANGUAGES.includes(language) && pattern.test(text)) return language;
   }
   for (const language of UNSUPPORTED_LOCAL_LANGUAGES) {
     const escaped = language.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -169,41 +153,6 @@ export function authorizationBlocker(value) {
     'must already have the right to work',
     'must be authorized to work',
   ].some((term) => text.includes(term));
-}
-
-export function experienceRequirement(value) {
-  const text = normalizeText(value);
-  const pattern = /\b(?:at least |minimum(?: of)? |over |more than )?(\d{1,2})(?:\s*(?:-|to)\s*(\d{1,2}))?\+?\s+years(?:\s+of)?(?:\s+[a-z+#./-]+){0,5}\s+experience\b/gi;
-  const requirements = [];
-  for (const match of text.matchAll(pattern)) {
-    const minimumYears = Number(match[1]);
-    if (minimumYears >= 1 && minimumYears <= 30) requirements.push(minimumYears);
-  }
-  if (!requirements.length) return null;
-  return { minimumYears: Math.max(...requirements) };
-}
-
-export function experienceSignal(value) {
-  if (EXPERIENCE_PROFILE.behavior === 'ignore') return null;
-  const requirement = experienceRequirement(value);
-  if (!requirement || EXPERIENCE_PROFILE.totalYears <= 0) return null;
-  if (requirement.minimumYears <= EXPERIENCE_PROFILE.coreYears) {
-    return { ...requirement, band: 'core', penalty: 0, caution: '' };
-  }
-  if (requirement.minimumYears <= EXPERIENCE_PROFILE.totalYears) {
-    return {
-      ...requirement,
-      band: 'adjacent',
-      penalty: 2,
-      caution: `The posting asks for ${requirement.minimumYears}+ years. This is above the configured core experience but within total experience including adjacent work.`,
-    };
-  }
-  return {
-    ...requirement,
-    band: 'stretch',
-    penalty: Math.min(18, (requirement.minimumYears - EXPERIENCE_PROFILE.totalYears) * 4),
-    caution: `The posting asks for ${requirement.minimumYears}+ years, above the configured ${EXPERIENCE_PROFILE.totalYears} years of total experience. Treat this as a stretch, not an automatic rejection.`,
-  };
 }
 
 function freshnessFor(job, priorSeenUrls, scanStartedAt) {
@@ -260,26 +209,20 @@ function titleIsExcluded(title) {
 function scoreCandidate(job, family, location, freshness) {
   const title = normalizeText(job.title);
   const description = normalizeText(job.description);
-  const experience = experienceSignal(description);
   let score = family.family.priority * 12;
   score += location.group.score;
   score += freshness.freshnessRank * 4;
-  if (IC_TITLE_SIGNALS.some((term) => containsTerm(title, term))) score += 10;
-  if (MANAGER_PREFERENCE.preferIndividualContributor && containsTerm(title, 'manager')) {
-    score -= MANAGER_PREFERENCE.titlePenalty;
-  }
-  if (MANAGER_PREFERENCE.preferIndividualContributor && peopleManagementRequired(description)) {
-    score -= MANAGER_PREFERENCE.peopleManagementPenalty;
-  }
-  if (experience) score -= experience.penalty;
+  if (IC_TITLE_SIGNALS.some((term) => containsTerm(title, term))) score += IC_TITLE_BONUS;
+  if (containsTerm(title, 'manager')) score -= MANAGER_TITLE_PENALTY;
+  if (peopleManagementRequired(description)) score -= PEOPLE_MANAGEMENT_PENALTY;
   score += Math.min(10, family.bodyMatches.length * 2);
   if (description.length >= 500) score += 3;
   return Math.round(score);
 }
 
 function fitBand(score) {
-  if (score >= 88) return 'Priority';
-  if (score >= 64) return 'Worth a look';
+  if (score >= PRIORITY_SCORE) return 'Priority';
+  if (score >= WORTH_LOOK_SCORE) return 'Worth a look';
   return 'Stretch / review';
 }
 
@@ -298,6 +241,7 @@ export function shortlistCandidates(jobs, state, scanStartedAt) {
   const priorSeenUrls = new Set(
     Object.keys(state.seenUrls || {}).map(canonicalUrl).filter(Boolean),
   );
+  const priorPostingKeys = new Set(Object.keys(state.seenPostingKeys || {}));
   const rejected = [];
   const byUrl = new Map();
 
@@ -310,8 +254,23 @@ export function shortlistCandidates(jobs, state, scanStartedAt) {
     }
   }
 
-  const candidates = [];
+  const byPosting = new Map();
   for (const job of byUrl.values()) {
+    const postingKey = postingIdentity(job);
+    const identity = postingKey || `url:${job.url}`;
+    const current = byPosting.get(identity);
+    if (!current || (job.description || '').length > (current.description || '').length) {
+      byPosting.set(identity, job);
+    }
+  }
+
+  const candidates = [];
+  for (const job of byPosting.values()) {
+    const postingKey = postingIdentity(job);
+    if (postingKey && priorPostingKeys.has(postingKey)) {
+      rejected.push({ ...job, reason: 'Duplicate company, title and location identity.' });
+      continue;
+    }
     if (titleIsExcluded(job.title)) {
       rejected.push({ ...job, reason: 'Excluded senior, technical, or academic title.' });
       continue;
@@ -334,21 +293,13 @@ export function shortlistCandidates(jobs, state, scanStartedAt) {
       rejected.push({ ...job, reason: `Hard ${language} requirement.` });
       continue;
     }
-    if (
-      (!HOME_LOCATION_GROUP_ID || location.group.id !== HOME_LOCATION_GROUP_ID)
-      && authorizationBlocker(body)
-    ) {
-      rejected.push({ ...job, reason: 'Explicit work-authorization or no-sponsorship blocker outside the configured home-location group.' });
+    if (!HOME_LOCATION_IDS.includes(location.group.id) && authorizationBlocker(body)) {
+      rejected.push({ ...job, reason: 'Explicit work-authorization or no-sponsorship blocker outside the configured home market.' });
       continue;
     }
-    const experience = experienceSignal(body);
     const score = scoreCandidate(job, family, location, freshness);
-    if (
-      MANAGER_PREFERENCE.preferIndividualContributor
-      && containsTerm(normalizeText(job.title), 'manager')
-      && score < MANAGER_PREFERENCE.lowFitManagerFloor
-    ) {
-      rejected.push({ ...job, reason: 'Manager-titled role did not clear the configured individual-contributor fit threshold.' });
+    if (containsTerm(normalizeText(job.title), 'manager') && score < WORTH_LOOK_SCORE) {
+      rejected.push({ ...job, reason: 'Manager-titled role did not clear the stronger individual-contributor fit threshold.' });
       continue;
     }
     candidates.push({
@@ -356,7 +307,6 @@ export function shortlistCandidates(jobs, state, scanStartedAt) {
       ...freshness,
       family,
       locationMatch: location,
-      experience,
       score,
       fit: fitBand(score),
     });
@@ -398,32 +348,31 @@ async function verifyOne(candidate) {
       return { ...candidate, verified: false, rejectedReason: `Hard ${language} requirement on the live page.` };
     }
     if (
-      (!HOME_LOCATION_GROUP_ID || candidate.locationMatch.group.id !== HOME_LOCATION_GROUP_ID)
+      !HOME_LOCATION_IDS.includes(candidate.locationMatch.group.id)
       && authorizationBlocker(description)
     ) {
       return {
         ...candidate,
         verified: false,
-        rejectedReason: 'Live page states an authorization or sponsorship blocker outside the configured home-location group.',
+        rejectedReason: 'Live page states an authorization or sponsorship blocker outside the configured home market.',
       };
     }
     const hasApplySignal = /\b(apply|submit application|apply now|send application)\b/i
       .test(page.text);
     const cautions = [
       candidate.locationMatch.caution,
-      MANAGER_PREFERENCE.preferIndividualContributor
-        && containsTerm(normalizeText(candidate.title), 'manager')
+      containsTerm(normalizeText(candidate.title), 'manager')
         ? 'Manager title; confirm that the role is genuinely individual-contributor work.'
         : '',
-      MANAGER_PREFERENCE.preferIndividualContributor && peopleManagementRequired(description)
+      peopleManagementRequired(description)
         ? 'The description includes people-management language; treat this as a material gap.'
         : '',
-      experienceSignal(description)?.caution,
       !hasApplySignal
         ? 'The page loaded, but an application control was not visible in the fetched HTML; open it manually before applying.'
         : '',
-      normalizeText(candidate.location).includes('remote')
-        ? 'Confirm that remote employment is available in one of the configured locations.'
+      !HOME_LOCATION_IDS.includes(candidate.locationMatch.group.id)
+        && normalizeText(candidate.location).includes('remote')
+        ? 'Confirm that remote employment is available from an eligible configured location.'
         : '',
     ].filter(Boolean);
     const richer = {
@@ -512,4 +461,3 @@ export function recommendationRecord(candidate) {
     boardKey: candidate.boardKey,
   };
 }
-

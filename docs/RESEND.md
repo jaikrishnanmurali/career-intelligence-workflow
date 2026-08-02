@@ -62,11 +62,9 @@ Validate without printing the values:
 npm run doctor -- --email --career-ops-root ../..
 ```
 
-Send one real digest only when intended:
+The public workflow deliberately has no one-step local send command. It first saves an exact prepared payload to durable state, then sends that saved payload. After installing the private workflow, use one deliberate GitHub Actions `run` for the first real email.
 
-```bash
-npm run scan -- --send
-```
+This separation keeps a retry from rescanning and producing a different message after an ambiguous delivery.
 
 If you use `onboarding@resend.dev`, `CAREER_DIGEST_TO` must be the email associated with the Resend account. With a verified domain, the sender must use that domain.
 

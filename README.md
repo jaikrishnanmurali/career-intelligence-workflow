@@ -1,161 +1,177 @@
-<p align="center">
-  <img src="docs/hero.webp" alt="Career Intelligence Workflow - job signals become a focused email digest" width="100%">
-</p>
-
-<p align="center">
-  <img alt="Career Ops companion" src="https://img.shields.io/badge/built_for-Career_Ops-2563EB">
-  <a href="https://github.com/jaikrishnanmurali/career-intelligence-workflow/actions/workflows/public-checks.yml"><img alt="Public project checks" src="https://github.com/jaikrishnanmurali/career-intelligence-workflow/actions/workflows/public-checks.yml/badge.svg"></a>
-  <img alt="Zero model tokens" src="https://img.shields.io/badge/scheduled_runtime-0_model_tokens-0F766E">
-  <img alt="Privacy first" src="https://img.shields.io/badge/deployment-private-0369A1">
-  <img alt="Node 22 or newer" src="https://img.shields.io/badge/node-%3E%3D22-339933?logo=nodedotjs&logoColor=white">
-  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-64748B"></a>
-</p>
-
 # Career Intelligence Workflow
 
-Always-on job discovery and email recommendations for [Career Ops](https://github.com/santifer/career-ops).
+Twice-daily job discovery and private email digests for [Career Ops](https://github.com/santifer/career-ops).
 
-Career Ops already knows the candidate: their CV, career story, target roles, evidence, and application workflow. Career Intelligence adds the missing delivery layer. It runs a deterministic scan in GitHub Actions, remembers what it has seen, and emails a focused Resend digest every 12 hours while the user's computer is off.
+[![Discovery Digest](https://img.shields.io/badge/default-Discovery_Digest-0F766E)](#choose-a-digest-mode)
+[![Model tokens](https://img.shields.io/badge/structured_scan-0_model_tokens-2563EB)](#what-the-zero-token-scan-covers)
+[![Tests](https://img.shields.io/badge/tests-35_passing-15803D)](#project-boundaries)
 
-The scheduled scanner uses **zero model API tokens**. Codex or Claude can help with setup, but no agent runs inside the scheduled decision path.
+Created by Jai Krishnan Murali from a private Career Ops workflow developed for his own job search, then redesigned as a reusable open-source system with Codex assistance.
 
-**Created by Jai Krishnan Murali from a private Career Ops workflow developed for his own job search, then redesigned as a reusable open-source system with Codex assistance.**
+## What it does
+
+Career Intelligence runs in GitHub Actions, so the user's computer can be off. Each scheduled run:
+
+1. Searches public job feeds and a rolling selection of employer ATS boards.
+2. Normalizes and deduplicates the listings.
+3. Applies the user's reviewed role, location, language, seniority and work-authorization rules.
+4. Separates exact timestamps, “posted today” signals and untimestamped jobs first discovered in this run.
+5. Opens a bounded shortlist to check for expired pages and explicit blockers.
+6. Saves the exact email payload before contacting Resend.
+7. Emails recommendations only when at least one survives.
+
+A zero-result run is still recorded as successful. It sends no empty email, and the later fallback triggers stop.
+
+## Choose a digest mode
+
+| | Discovery Digest — default | Smart Digest — optional |
+|---|---|---|
+| Public feeds and ATS endpoints | Yes | Yes |
+| Deterministic filtering and ranking | Yes | Yes |
+| Model tokens for discovery | 0 | Bounded usage |
+| Career Ops browser and broad web-search gaps | No | Attempted by Codex or Claude Code |
+| Full-description model evaluation | No | Bounded batch |
+| Provider secret required | No | Yes |
+
+The optional model worker is disabled by default with `CAREER_OPS_AGENT_ENABLED=false`. The structured scanner has its own run decision and continues working while the agent is disabled.
+
+### What “reduced coverage” means
+
+Discovery Digest is a real search, but it cannot see every place a person can browse interactively.
+
+- A new Greenhouse, Lever or Ashby vacancy on a board reached by the current rolling shard can be found.
+- A Platsbanken, Arbeitnow, The Hub, Welcome to the Jungle, Jobicy, Himalayas, Remotive or Remote OK listing can be found when its feed responds.
+- A role visible only in a LinkedIn search result may be missed because Discovery does not crawl LinkedIn or run broad web queries.
+- An Indeed or Glassdoor result may be missed unless the same vacancy also appears in a scanned employer feed or ATS board.
+- A JavaScript-heavy careers page with a “Load more” button may be missed because it needs a browser.
+- A supported ATS company can still be missed in one run because boards are scanned in bounded rotating groups rather than all at once.
+
+Every run records which structured sources completed, partially completed or failed, and the digest names incomplete lanes. A source failure is never described as “no jobs found.”
+
+Smart Digest adds the Career Ops browser and web-search layer for sources such as LinkedIn, regional boards, specialist climate boards and employer pages. It improves coverage, but it still cannot guarantee every vacancy on the internet: sites can require login, block automation, change their pages or hide posting dates.
 
 ## Quick start
 
-Career Intelligence requires an onboarded Career Ops workspace. If you are new to Career Ops:
+Career Intelligence is an extension, not a replacement for Career Ops.
 
-```bash
+### 1. Install and onboard Career Ops
+
+Run this in PowerShell, Terminal or the VS Code terminal:
+
+```powershell
 npx @santifer/career-ops init
 cd career-ops
 ```
 
-Open Codex or Claude there and complete the Career Ops onboarding first. When `config/profile.yml` and `cv.md` are ready, run this from the Career Ops root:
+Open Codex or Claude Code from that folder and complete the Career Ops profile and CV onboarding first.
 
-```bash
-npx --yes github:jaikrishnanmurali/career-intelligence-workflow init
+### 2. Install Career Intelligence
+
+From the Career Ops root:
+
+```powershell
+npx --yes github:jaikrishnanmurali/career-intelligence-workflow setup
 ```
 
-Then reopen your agent from the Career Ops root and say:
+Then tell the agent:
 
 ```text
-Set up my 12-hour Career Intelligence job digest.
+Set up my zero-token 12-hour Discovery Digest.
 ```
 
-The installer creates `extensions/career-intelligence-workflow`, imports a private draft from the Career Ops profile, installs namespaced Codex and Claude adapters, and installs the scanner dependency. It does **not** send email or enable a schedule.
+The setup assistant will:
 
-## What the setup conversation does
+- draft structured search rules from Career Ops;
+- show the role, location and language rules for review;
+- run checks without emailing anyone;
+- help sign in to GitHub;
+- create or use a private repository;
+- add Resend secrets without asking the user to paste them into chat;
+- install the twice-daily workflow only after confirmation.
 
-The agent reuses Career Ops instead of asking the user to rebuild their profile. It asks only for scan-specific gaps:
+The generated config starts with `configured: false`. Scheduling should not be enabled until the user has reviewed it and changed that value to `true`.
 
-- adjacent titles and responsibility signals;
-- titles to exclude and whether manager roles should rank lower;
-- directly relevant and total adjacent experience;
-- ordered locations and hard location exclusions;
-- languages that become blockers only when a posting makes them mandatory;
-- confirmation of the 12-hour lookback and twice-daily cadence.
+## What the zero-token scan covers
 
-It shows the interpreted rules in plain language before writing them. The profile remains `configured: false` until the user confirms it. Then the agent runs diagnostics, tests, and a bounded scan that sends no email.
+The structured scanner currently supports:
 
-## What the extension adds
+- Platsbanken JobStream;
+- Arbeitnow;
+- The Hub;
+- Welcome to the Jungle;
+- Jobicy;
+- Himalayas;
+- Remotive;
+- Remote OK;
+- rolling Greenhouse, Lever, Ashby and Workday company boards.
 
-| Career Ops provides | Career Intelligence adds |
-| --- | --- |
-| Candidate profile, CV, evidence, target roles | Search-specific rules imported from that foundation |
-| Interactive portal scanning and evaluation | Unattended rolling discovery across public feeds and ATS boards |
-| CV tailoring, reports, tracker, application workflow | Freshness checks, deterministic ranking, saved state, Resend digest |
-| Agent reasoning when the user chooses a role | Zero-model-token scheduled runtime every 12 hours |
+Large ATS directories are sharded. By default, one run checks up to 120 boards per ATS family, saves a cursor and continues from a later point next time. Boards that previously produced a recommendation can be prioritized. A failure on one source or company board is recorded without cancelling successful lanes.
 
-When the user selects a recommendation, its URL and evidence summary return to Career Ops for evaluation and any later CV work. Career Intelligence never applies, fills a form, edits the tracker, or contacts an employer.
+Workday is the least reliable structured connector in the current implementation. Some or all requested Workday boards can fail in a run; that lane must then be shown as failed or partial, never silently counted as coverage.
 
-## What a scheduled run does
+Freshness has three honest labels:
 
-1. Searches independent public feeds and rolling Greenhouse, Lever, Ashby, and Workday boards.
-2. Normalizes and deduplicates listings.
-3. Separates exact freshness evidence from weaker signals.
-4. Filters hard title, location, language, authorization, and expiry blockers.
-5. Applies configurable experience and manager cautions.
-6. Verifies a bounded set of live pages.
-7. Emails only recommendations that have not already been sent.
-8. Saves private state for the next run.
+- **Verified fresh:** an exact source timestamp is inside the configured lookback window.
+- **Likely fresh:** the source says something current such as “Posted Today,” and the URL was not seen before.
+- **Newly discovered:** no reliable posting time is available, but the URL was absent from saved state. It is considered once and never described as proven to be twelve hours old.
 
-One broken source is recorded without stopping the other lanes.
+Previously seen untimestamped jobs, expired pages, already delivered URLs and explicit hard blockers are suppressed.
 
-### Delivery retries without duplicate mail
+## Reliability design
 
-Each morning and evening slot has an initial GitHub Actions attempt plus retries 20 and 40 minutes later. Every attempt loads the latest committed state before deciding whether to scan. Once a slot is delivered, later attempts skip it. If Resend accepted an email but the workflow failed before saving state, every attempt still uses the same repository-and-slot idempotency key, so the retry cannot send a second copy.
+Each morning and evening slot has three staggered GitHub triggers. They share one logical slot ID, so they are retries rather than three separate scans.
 
-The retry window reduces missed deliveries; it cannot compensate for disabled Actions, invalid secrets, or all three attempts failing.
+Before Resend is called, the exact subject, text, HTML, recipients, payload hash and stable delivery key are saved to a dedicated state branch. A retry reuses that saved payload without rescanning. A delivered slot cannot be forced to send again, and a Resend error is not treated as proof that an email arrived.
 
-### Freshness stays honest
+Runtime state is kept off the default branch. The state branch contains only an explicit allowlist of scan state, reports and Career Ops history needed for continuity.
 
-- **Verified:** an exact source timestamp is inside the configured lookback.
-- **Likely:** the source says something relative such as "posted today," but the exact age is unknown.
-- **Newly discovered:** the live URL is absent from saved state and exposes no reliable posting time.
+## Optional Smart Digest
 
-`newly_discovered` never means "provably posted within the last 12 hours." It appears once and is then suppressed by saved state.
+Smart Digest is for users who accept provider cost and cloud data sharing in exchange for broader discovery and full-description judgment.
 
-## Add email and cloud scheduling
+It adds two isolated jobs:
 
-Only after the no-email scan passes:
+1. A bounded discovery worker attempts the tracked-company and broad web-search gaps defined by Career Ops.
+2. A bounded evaluator reviews complete descriptions for the newest candidates.
 
-1. Configure a sending-only Resend key using [the Resend guide](docs/RESEND.md). For a personal digest sent to the Resend account email, no domain or live website is required.
-2. Put the Career Ops workspace in a **private** GitHub repository.
-3. Add the three documented GitHub Actions secrets.
-4. From the extension directory, install the workflow only after reviewing it:
+The worker receives no Resend key and no persisted Git credentials. A clean runner validates its structured output before another clean runner prepares and sends the email. Candidates beyond the evaluation cap remain visible as unscored rather than disappearing.
 
-```bash
-cd extensions/career-intelligence-workflow
-npm run workflow:install -- --root ../..
+To enable it, the user must deliberately choose `digest.mode: smart`, add the selected provider credential and set the private repository variable `CAREER_OPS_AGENT_ENABLED=true`.
+
+See [Digest modes](docs/DIGEST_MODES.md), [Agent integrations](docs/AGENT_INTEGRATIONS.md) and [Privacy](docs/PRIVACY.md).
+
+## Useful commands
+
+Run these from `extensions/career-intelligence-workflow` inside the private Career Ops repository:
+
+```powershell
+npm run doctor
+npm run smoke
+npm run scan:structured
+npm run status
+npm run pause
+npm run resume
 ```
 
-5. Commit the private profile, workflow, and generated package lock to the private repository.
-6. Run `guard-only` once, then run one deliberate delivery before relying on the schedule.
+`scan:structured` performs live network discovery but does not send email. The GitHub workflow remains the supported path for scheduled state restoration, durable delivery and retries.
 
-See [the automation guide](docs/AUTOMATION.md) for the exact commands and checks.
+## Project boundaries
 
-## Privacy boundary
+Career Intelligence can find and recommend jobs. It does not submit applications, fill forms, contact employers, tailor CVs or change the Career Ops application tracker.
 
-The public repository contains code, fictional fixtures, and empty example state. A real deployment belongs inside the user's private Career Ops repository. The importer copies target-role and location foundations but deliberately omits contact data, CV text, narrative, and proof points.
+The first public version supports one person per private deployment. It is not a shared multi-user service, and the ChatGPT website cannot run the installation commands. Use Codex CLI/Desktop or Claude Code from the Career Ops folder.
 
-Resend credentials and email addresses belong in an ignored `.env` for local testing or GitHub Actions secrets for cloud delivery. Never paste an API key into agent chat or commit it.
-
-Read [the privacy model](docs/PRIVACY.md) and [security policy](SECURITY.md) before enabling automation.
-
-## Repository map
-
-```text
-career-ops/
-|-- config/profile.yml                   # Career Ops candidate source of truth
-|-- cv.md                                # Career Ops CV source of truth
-|-- .agents/skills/career-intelligence/  # installed Codex adapter
-|-- .claude/skills/career-intelligence/  # installed Claude adapter
-`-- extensions/
-    `-- career-intelligence-workflow/
-        |-- config/profile.yml            # private search-only additions
-        |-- src/                          # deterministic scan and email code
-        |-- state/                        # private seen-job history
-        |-- reports/                      # private latest result
-        `-- modes/                        # setup, scan, explain, deploy instructions
-```
+AI assisted the project's development and documentation. The zero-token claim applies to the structured Discovery scan. Smart Digest intentionally uses bounded model calls.
 
 ## Documentation
 
-- [Complete setup](docs/SETUP.md)
-- [How it uses Career Ops](docs/CAREER_OPS_INTEGRATION.md)
-- [Resend email](docs/RESEND.md)
-- [GitHub Actions automation](docs/AUTOMATION.md)
-- [Codex and Claude](docs/AGENT_INTEGRATIONS.md)
+- [Setup](docs/SETUP.md)
+- [Digest modes and coverage](docs/DIGEST_MODES.md)
+- [Automation](docs/AUTOMATION.md)
+- [Career Ops integration](docs/CAREER_OPS_INTEGRATION.md)
+- [Resend](docs/RESEND.md)
 - [Privacy](docs/PRIVACY.md)
-- [Architecture](docs/architecture.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Architecture](docs/architecture.md)
 
-## Project relationship
-
-Career Intelligence Workflow is independently maintained by Jai Krishnan Murali. It requires and acknowledges [Career Ops](https://github.com/santifer/career-ops), created by Santiago Fernandez de Valderrama. It is not affiliated with or endorsed by the Career Ops maintainer.
-
-AI assisted development and documentation. The scheduled recommendation path itself contains no model call.
-
-## License
-
-This project is available under the [MIT License](LICENSE). Career Ops and job-data providers remain subject to their own licenses and terms.
+MIT licensed. Maintained mainly by Jai Krishnan Murali.

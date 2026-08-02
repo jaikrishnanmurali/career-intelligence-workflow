@@ -1,14 +1,13 @@
 {
-  "version": 1,
+  "version": 3,
   "seenUrls": {},
+  "seenPostingKeys": {},
   "sentUrls": [],
   "sourceCursors": {},
-  "priorityBoards": {
-    "greenhouse": [],
-    "lever": [],
-    "ashby": [],
-    "workday": []
-  },
-  "runs": []
+  "priorityBoards": {},
+  "sentKeys": [],
+  "outbox": {},
+  "sourceHealth": {},
+  "runs": [],
+  "paused": null
 }
-

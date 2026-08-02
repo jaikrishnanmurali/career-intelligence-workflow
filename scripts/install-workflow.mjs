@@ -25,7 +25,7 @@ export async function installWorkflow(careerOpsRoot) {
   if (!await exists(path.join(root, 'AGENTS.md'))) {
     throw new Error(`No Career Ops AGENTS.md found at ${root}.`);
   }
-  const source = path.join(ROOT, 'examples', 'deep-job-scan.scheduled.yml');
+  const source = path.join(ROOT, 'examples', 'career-intelligence.scheduled.yml');
   const destination = path.join(root, '.github', 'workflows', 'career-intelligence.yml');
   await mkdir(path.dirname(destination), { recursive: true });
   try {

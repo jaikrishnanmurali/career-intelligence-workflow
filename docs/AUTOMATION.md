@@ -1,53 +1,58 @@
-# Run the digest every 12 hours
+# GitHub Actions automation
 
-GitHub Actions runs while the user's computer is off. The workflow belongs in the user's private Career Ops repository because it reads the private extension profile and commits recommendation state.
+The installed workflow runs from a private Career Ops repository while the user's computer is off. Discovery Digest is the default. Smart Digest uses the same file with an explicit mode and feature flag.
 
-The schedule uses three attempts for each morning and evening delivery slot. The later attempts are retries, not extra digests.
+## Run order
 
-## Before enabling it
+1. Check out the private default branch and refuse a public repository.
+2. Restore allowlisted scanner, Career Ops and delivery state from `career-intelligence-state`.
+3. Check pause, snooze, hired outcome and logical-slot state.
+4. Run the zero-token public-feed and rolling ATS scanner whenever `should_run=true`.
+5. Save structured candidates, source receipts, cursors and seen history.
+6. If `agent_should_run=true`, run the isolated Smart discovery and evaluation jobs.
+7. On a clean runner, validate any model output and merge it with structured candidates.
+8. Build the exact Resend payload and save it to the state branch.
+9. If recommendations exist, send only that saved payload and save the receipt.
+10. If none exist, record `no-recommendations`, send nothing and close the slot.
 
-From `career-ops/extensions/career-intelligence-workflow`:
+The gate has separate `should_run` and `agent_should_run` outputs. `CAREER_OPS_AGENT_ENABLED=false` prevents model work but never prevents structured discovery.
 
-```bash
-npm run doctor -- --email --career-ops-root ../..
-npm test
-npm run smoke
-```
+## State branch
 
-The smoke run must say that no email was sent.
+Fresh GitHub runners have no memory. Without durable state, an untimestamped vacancy could look new on every run and ATS sharding would restart from the first board.
 
-## Install the workflow
+The dedicated branch stores only an allowlist, including:
 
-After confirming the Career Ops repository is private:
+- scanner seen URLs, sent identities, ATS cursors and priority boards;
+- logical runs, pause state and durable outbox entries;
+- source plans, coverage receipts and prepared candidates;
+- Career Ops scan history and pipeline files used by Smart integration;
+- the latest digest report.
 
-```bash
-npm run workflow:install -- --root ../..
-```
+The branch is private and is not merged into the default branch.
 
-This creates:
+## Retry slots
 
-```text
-career-ops/.github/workflows/career-intelligence.yml
-```
+Each morning and evening slot has three triggers:
 
-The installer refuses to overwrite an existing workflow.
+| Slot | Attempt 1 | Attempt 2 | Attempt 3 |
+|---|---:|---:|---:|
+| Morning | 07:23 | 07:43 | 08:03 |
+| Evening | 19:23 | 19:43 | 20:03 |
 
-Add the private extension profile and generated lockfile deliberately:
+The cron entries are UTC. The configured timezone determines the local slot date and email display, not GitHub's trigger clock.
 
-```bash
-cd ../..
-git add .github/workflows/career-intelligence.yml
-git add extensions/career-intelligence-workflow/package-lock.json
-git add -f extensions/career-intelligence-workflow/config/profile.yml
-git commit -m "Configure private Career Intelligence digest"
-git push
-```
+- A delivered slot stops.
+- A zero-result completed slot stops.
+- A prepared slot resumes the exact saved email without scanning.
+- A new slot starts discovery.
+- A different recent successful slot respects the minimum gap.
 
-Never add the extension `.env` file.
+The Resend idempotency key is scoped to the repository and slot. A 409 or any other non-2xx response remains an error unless a delivery receipt already exists.
 
-## Add GitHub secrets
+## Secrets and variables
 
-In the private Career Ops repository, add these Actions secrets:
+Discovery requires:
 
 ```text
 RESEND_API_KEY
@@ -55,61 +60,20 @@ CAREER_DIGEST_FROM
 CAREER_DIGEST_TO
 ```
 
-See [RESEND.md](RESEND.md) for the no-domain personal setup and the optional verified-domain setup.
+Smart with Codex also requires `OPENAI_API_KEY`. Smart with Claude Code also requires `CLAUDE_CODE_OAUTH_TOKEN`.
 
-## How the delivery guard works
+Smart additionally requires this private repository variable:
 
-The example has two delivery slots. Each slot gets an initial attempt and two retries 20 and 40 minutes later:
+```text
+CAREER_OPS_AGENT_ENABLED=true
+```
 
-| Slot | Initial attempt | Retry 1 | Retry 2 |
-| --- | --- | --- | --- |
-| Morning | 07:23 | 07:43 | 08:03 |
-| Evening | 19:23 | 19:43 | 20:03 |
+Use `gh secret set NAME` and `gh variable set NAME --body VALUE`. Never place a key in YAML, a commit, an issue or a chat.
 
-The example timezone is `UTC`. If every workflow `timezone` field is changed to `Europe/Stockholm`, those become Stockholm wall-clock times. Keep the workflow timezone aligned with `runtime.timezone` in the private extension profile.
+## Safe validation
 
-Every attempt:
+Run `guard-only` first. It makes no network scan and sends no email. Then run one manual `run`, inspect the source receipt and verify both positive and zero-result behavior before relying on the schedule.
 
-1. Checks out the repository's default branch so it sees the latest committed scan state.
-2. Reads the saved delivery history before deciding whether to scan.
-3. Skips the slot when a successful or deduplicated delivery is already recorded.
-4. Uses the same Resend idempotency key for that repository and slot.
-5. Records the slot, delivery status, and Resend result in private state after success.
+## Stopping
 
-If an attempt fails before delivery, the next attempt can scan. If Resend accepted the email but the run failed before state was committed, the repeated idempotency key suppresses another email and lets the retry record the slot as deduplicated. Resend retains idempotency keys for 24 hours, well beyond the 40-minute retry window. GitHub concurrency queues the attempts and prevents them from scanning at the same time.
-
-Resend documents this behavior in [Idempotency Keys](https://resend.com/docs/dashboard/emails/idempotency-keys). GitHub documents default-branch scheduling, timezone behavior, and delayed starts in [Events that trigger workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
-
-The retries reduce missed deliveries caused by a delayed or failed workflow run. They cannot deliver when Actions is disabled, repository secrets are wrong, Resend rejects every request, or all three GitHub attempts fail.
-
-## Test the guard without scanning or emailing
-
-1. Open the private repository's **Actions** tab.
-2. Select **Scheduled Career Intelligence digest**.
-3. Choose **Run workflow**.
-4. Set `mode` to `guard-only`.
-5. Start the workflow.
-
-The guard step should complete, `should_run` should be false, and the validation, tests, scanner, email, and state-save steps should be skipped. The decision appears in the workflow summary.
-
-## Test one real delivery
-
-After the guard-only run passes:
-
-1. Run the workflow again with `mode` set to `run`.
-2. Confirm the scan and email steps pass.
-3. Inspect the email's freshness labels and recommendation reasons.
-4. Confirm the resulting commit changed only extension state and report files.
-5. Let the next scheduled retry start and confirm it skips a delivered slot.
-
-A manual `run` receives its own stable slot ID. Re-running the same GitHub run remains duplicate-safe.
-
-## Change the schedule
-
-Edit all six schedule entries together. Preserve the initial, +20 minute, and +40 minute pattern unless you intentionally choose another retry window. Set the same IANA timezone on every entry and in the extension profile.
-
-Scheduled workflows can still start late. The times are delivery targets, not real-time guarantees.
-
-## Disable it
-
-Disable the workflow in the Actions tab or remove `.github/workflows/career-intelligence.yml` from the private Career Ops repository. Removing the example inside the extension has no effect.
+Use the manual pause control, disable the workflow in GitHub Actions, or remove `.github/workflows/career-intelligence.yml`. The private state branch remains until the user deliberately archives or deletes it.

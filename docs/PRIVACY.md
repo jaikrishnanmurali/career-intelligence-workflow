@@ -1,45 +1,51 @@
 # Privacy model
 
-Career Intelligence runs inside a Career Ops workspace, where the CV and profile are already personal. A live deployment therefore belongs in a private repository with narrow access.
+A live deployment contains a real CV, profile, search history and email activity. It belongs in a private GitHub repository with narrow membership.
 
-## Data boundary
+## Where data goes
 
-| Data | Public project | Private Career Ops deployment |
-| --- | --- | --- |
-| Extension code and tests | Yes | Yes |
-| Fictional profile fixture | Yes | Yes |
-| Career Ops profile and CV | Never | Yes |
-| Confirmed extension profile | Never | Yes |
-| Resend key and email addresses | Never | GitHub secrets or ignored `.env` |
-| Recommendation state and report | Empty fixture only | Yes |
+| Data | GitHub private repository | OpenAI or Anthropic | Resend |
+| --- | --- | --- | --- |
+| Career Ops profile and CV | Yes | Smart Digest only | No |
+| Portals, history and shortlist | Yes | Smart discovery as needed | No |
+| Job descriptions | State may contain links and summaries | Smart Digest only | Fit summary and link in email |
+| Recipient and sender | Secrets/state payload | No | Yes |
+| API credentials | GitHub Actions secrets | Provider receives its own credential | Resend receives its own credential |
 
-## Import minimization
+Discovery Digest does not send CV or job context to a model provider. It still stores Career Ops data in private GitHub and sends the final digest through Resend.
 
-The deterministic importer copies role names, archetype fit, and location foundations into an unconfirmed extension draft. It does not copy name, email, phone, CV text, narrative, or proof points. Tests enforce this boundary.
+## Default branch versus state branch
 
-## Ignored extension files
+The private default branch contains the files a fresh runner needs: Career Ops profile, CV, portals, the reviewed extension scan and delivery config, and the workflow.
 
-```text
-.env
-config/profile.yml
-preview/
-state/state.json
-reports/latest.json
-reports/archive/
-```
+`career-intelligence-state` contains an allowlisted runtime tree: scan history, shortlist/pipeline state, coverage receipts, prepared candidates, latest report, sent identities and exact email outbox.
 
-Git ignore is a guardrail, not encryption. The confirmed profile and generated state must be force-added only to a private Career Ops repository for cloud scheduling. Never force-add `.env`.
+Neither branch is encrypted. Anyone who can read the repository may be able to read the data. Git ignore is not a privacy boundary once files are deliberately committed to a private repository.
 
-## GitHub Actions
+## Secrets
 
-The workflow maps three secrets and commits the extension's state and latest report. Anyone with read access to the private repository can see the recommendation history, Career Ops profile, and CV. Keep repository membership narrow.
+Use GitHub Actions secrets or an ignored local `.env`. Never:
 
-## Email
+- paste a key into Codex, Claude, an issue or a pull request;
+- write a key into YAML;
+- print a key in logs;
+- force-add `.env`;
+- reuse a broad provider key when a restricted project key is available.
 
-Resend receives the digest body, recipient address, and sender address. The digest contains job titles, employers, locations, links, fit reasons, and cautions. It does not need the user's CV or career narrative.
+If a credential appears in chat or source history, rotate it. Deleting the visible text is not sufficient.
 
-## Agent access
+## Smart Digest consent
 
-Codex or Claude may read Career Ops and extension files while onboarding or explaining a result. The scheduled workflow does not invoke either agent.
+Before enabling Smart Digest, the user should understand that GitHub Actions sends private Career Ops and job context to the selected model provider. The provider’s retention, training, regional processing and account policies apply.
 
-Never paste credentials into agent chat. If a key has been exposed, rotate it immediately even if it was later deleted from the conversation or repository.
+The worker prompts restrict purpose and writes, but prompts are not a data-isolation mechanism. Repository privacy, provider settings, minimal credentials and narrow tool access remain necessary.
+
+## Resend
+
+Resend receives the exact message body, sender and recipient. The digest can include employers, titles, locations, URLs, recommendation reasons, cautions and coverage failures. It does not need the full CV.
+
+The `resend.dev` test sender can send only to the account email. A verified domain is needed for normal sending, but the domain does not need to host a live website.
+
+## Public project
+
+The public repository must contain only code, instructions and fictional examples. Real reports, state, profiles, CVs, email addresses and credentials do not belong here.

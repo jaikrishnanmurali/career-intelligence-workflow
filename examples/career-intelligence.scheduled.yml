@@ -1,0 +1,333 @@
+# Install only in the root of a private Career Ops repository.
+name: Career Intelligence digest
+
+on:
+  schedule:
+    - cron: "23 7 * * *"
+    - cron: "43 7 * * *"
+    - cron: "3 8 * * *"
+    - cron: "23 19 * * *"
+    - cron: "43 19 * * *"
+    - cron: "3 20 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Run, check, pause, or resume the digest
+        required: true
+        default: run
+        type: choice
+        options: [run, guard-only, pause, resume]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: career-intelligence-digest
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      should_run: ${{ steps.gate.outputs.should_run }}
+      agent_should_run: ${{ steps.gate.outputs.agent_should_run }}
+      resume_delivery: ${{ steps.gate.outputs.resume_delivery }}
+      slot_id: ${{ steps.gate.outputs.slot_id }}
+      mode: ${{ steps.gate.outputs.mode }}
+      provider: ${{ steps.gate.outputs.provider }}
+      reason: ${{ steps.gate.outputs.reason }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: extensions/career-intelligence-workflow
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - name: Refuse public repositories
+        working-directory: .
+        run: |
+          test "${{ github.event.repository.private }}" = "true" || {
+            echo "Career Intelligence contains private career data and must run in a private repository."
+            exit 1
+          }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            extensions/career-intelligence-workflow/package-lock.json
+
+      - name: Install locked dependencies
+        working-directory: .
+        run: |
+          npm ci --ignore-scripts
+          npm ci --ignore-scripts --prefix extensions/career-intelligence-workflow
+
+      - name: Restore Career Ops and delivery state
+        run: node scripts/state-sync.mjs restore
+
+      - name: Check Hired outcome and expired snooze
+        id: lifecycle
+        run: node scripts/lifecycle.mjs check
+
+      - name: Pause from a manual control run
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'pause'
+        run: node scripts/lifecycle.mjs pause "Paused from GitHub Actions."
+
+      - name: Resume from a manual control run
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'resume'
+        run: node scripts/lifecycle.mjs resume
+
+      - name: Save lifecycle changes
+        if: steps.lifecycle.outputs.changed == 'true' || inputs.mode == 'pause' || inputs.mode == 'resume'
+        run: node scripts/state-sync.mjs save
+
+      - name: Decide whether this attempt should run
+        id: gate
+        run: node src/schedule-guard.mjs
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
+          RUN_MODE: ${{ inputs.mode || 'run' }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          MINIMUM_GAP_HOURS: "6"
+          AGENT_ENABLED: ${{ vars.CAREER_OPS_AGENT_ENABLED || 'false' }}
+
+      - name: Validate the private Career Ops workspace
+        if: steps.gate.outputs.should_run == 'true' && steps.gate.outputs.resume_delivery != 'true'
+        run: npm run doctor -- --deploy --career-ops-root ../..
+
+      - name: Run zero-token structured feeds and rolling ATS discovery
+        if: steps.gate.outputs.should_run == 'true' && steps.gate.outputs.resume_delivery != 'true'
+        run: node scripts/run-structured-scan.mjs --run-id "${{ github.run_id }}"
+        env:
+          CAREER_OPS_ROOT: ../..
+          CAREER_INTELLIGENCE_EFFECTIVE_MODE: ${{ steps.gate.outputs.mode }}
+
+      - name: Save the clean structured result
+        if: steps.gate.outputs.should_run == 'true' && steps.gate.outputs.resume_delivery != 'true'
+        run: node scripts/state-sync.mjs save
+
+      - name: Record the gate
+        if: always()
+        run: echo "${{ steps.gate.outputs.reason }}" >> "$GITHUB_STEP_SUMMARY"
+
+  smart_discovery:
+    needs: bootstrap
+    if: needs.bootstrap.outputs.agent_should_run == 'true' && needs.bootstrap.outputs.resume_delivery != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    outputs:
+      result: ${{ steps.codex.outputs.final-message || steps.claude.outputs.structured_output }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies before the agent
+        run: |
+          npm ci --ignore-scripts
+          npm ci --ignore-scripts --prefix extensions/career-intelligence-workflow
+
+      - name: Restore the clean structured result
+        working-directory: extensions/career-intelligence-workflow
+        run: node scripts/state-sync.mjs restore
+
+      - name: Run bounded Codex discovery as the final active step
+        id: codex
+        if: needs.bootstrap.outputs.provider == 'codex'
+        continue-on-error: true
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: extensions/career-intelligence-workflow/modes/scheduled-discovery.md
+          output-schema-file: extensions/career-intelligence-workflow/schemas/discovery-result.schema.json
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+          allow-bots: true
+          codex-args: '["--search","--ephemeral","--config","sandbox_workspace_write.network_access=true"]'
+
+      - name: Run bounded Claude discovery as the final active step
+        id: claude
+        if: needs.bootstrap.outputs.provider == 'claude'
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ github.token }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: Follow extensions/career-intelligence-workflow/modes/scheduled-discovery.md exactly and return only the required JSON.
+          claude_args: >-
+            --max-turns 12
+            --allowedTools "Read,WebSearch,WebFetch,Bash(node *)"
+            --json-schema '{"type":"object","required":["schemaVersion","runId","sources","discoveries"],"properties":{"schemaVersion":{"type":"number"},"runId":{"type":"string"},"sources":{"type":"array"},"discoveries":{"type":"array"}}}'
+
+  apply_discovery:
+    needs: [bootstrap, smart_discovery]
+    if: always() && needs.bootstrap.outputs.agent_should_run == 'true' && needs.bootstrap.outputs.resume_delivery != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+        working-directory: extensions/career-intelligence-workflow
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install clean dependencies
+        working-directory: .
+        run: |
+          npm ci --ignore-scripts
+          npm ci --ignore-scripts --prefix extensions/career-intelligence-workflow
+
+      - name: Restore structured state on a fresh runner
+        run: node scripts/state-sync.mjs restore
+
+      - name: Validate and apply isolated discovery output
+        run: node scripts/apply-agent-result.mjs discovery
+        env:
+          CAREER_AGENT_RESULT: ${{ needs.smart_discovery.outputs.result }}
+
+      - name: Prepare all unsent candidates
+        run: node scripts/prepare-candidates.mjs
+
+      - name: Save clean discoveries and candidates
+        run: node scripts/state-sync.mjs save
+
+  smart_evaluation:
+    needs: [bootstrap, apply_discovery]
+    if: needs.bootstrap.outputs.agent_should_run == 'true' && needs.bootstrap.outputs.resume_delivery != 'true' && needs.apply_discovery.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    outputs:
+      result: ${{ steps.codex.outputs.final-message || steps.claude.outputs.structured_output }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies before the agent
+        run: |
+          npm ci --ignore-scripts
+          npm ci --ignore-scripts --prefix extensions/career-intelligence-workflow
+
+      - name: Restore prepared candidates
+        working-directory: extensions/career-intelligence-workflow
+        run: node scripts/state-sync.mjs restore
+
+      - name: Run bounded Codex evaluation as the final active step
+        id: codex
+        if: needs.bootstrap.outputs.provider == 'codex'
+        continue-on-error: true
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: extensions/career-intelligence-workflow/modes/scheduled-evaluate.md
+          output-schema-file: extensions/career-intelligence-workflow/schemas/evaluation-result.schema.json
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+          allow-bots: true
+          codex-args: '["--search","--ephemeral","--config","sandbox_workspace_write.network_access=true"]'
+
+      - name: Run bounded Claude evaluation as the final active step
+        id: claude
+        if: needs.bootstrap.outputs.provider == 'claude'
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ github.token }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: Follow extensions/career-intelligence-workflow/modes/scheduled-evaluate.md exactly and return only the required JSON.
+          claude_args: >-
+            --max-turns 12
+            --allowedTools "Read,WebSearch,WebFetch"
+            --json-schema '{"type":"object","required":["schemaVersion","runId","evaluations"],"properties":{"schemaVersion":{"type":"number"},"runId":{"type":"string"},"evaluations":{"type":"array"}}}'
+
+  deliver:
+    needs: [bootstrap, apply_discovery, smart_evaluation]
+    if: always() && needs.bootstrap.outputs.should_run == 'true' && (needs.bootstrap.outputs.resume_delivery == 'true' || needs.bootstrap.outputs.mode == 'discovery' || needs.apply_discovery.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+        working-directory: extensions/career-intelligence-workflow
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install clean delivery dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Restore clean state and any prepared outbox
+        run: node scripts/state-sync.mjs restore
+
+      - name: Validate and apply isolated evaluation output
+        if: needs.bootstrap.outputs.resume_delivery != 'true' && needs.bootstrap.outputs.mode == 'smart'
+        run: node scripts/apply-agent-result.mjs evaluation
+        env:
+          CAREER_AGENT_RESULT: ${{ needs.smart_evaluation.outputs.result }}
+          CAREER_INTELLIGENCE_EFFECTIVE_MODE: ${{ needs.bootstrap.outputs.mode }}
+
+      - name: Prepare the exact email payload
+        if: needs.bootstrap.outputs.resume_delivery != 'true'
+        run: node src/run.mjs --prepare --slot "${{ needs.bootstrap.outputs.slot_id }}"
+        env:
+          CAREER_DIGEST_FROM: ${{ secrets.CAREER_DIGEST_FROM }}
+          CAREER_DIGEST_TO: ${{ secrets.CAREER_DIGEST_TO }}
+          CAREER_INTELLIGENCE_EFFECTIVE_MODE: ${{ needs.bootstrap.outputs.mode }}
+
+      - name: Save the prepared payload before Resend
+        if: needs.bootstrap.outputs.resume_delivery != 'true'
+        run: node scripts/state-sync.mjs save
+
+      - name: Deliver only the saved payload
+        run: node src/run.mjs --deliver --slot "${{ needs.bootstrap.outputs.slot_id }}"
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          CAREER_DIGEST_FROM: ${{ secrets.CAREER_DIGEST_FROM }}
+          CAREER_DIGEST_TO: ${{ secrets.CAREER_DIGEST_TO }}
+          CAREER_INTELLIGENCE_EFFECTIVE_MODE: ${{ needs.bootstrap.outputs.mode }}
+
+      - name: Save delivery receipt and sent identities
+        run: node scripts/state-sync.mjs save
+
+      - name: Add a health summary
+        if: always()
+        run: npm run status >> "$GITHUB_STEP_SUMMARY"
+        env:
+          CAREER_INTELLIGENCE_EFFECTIVE_MODE: ${{ needs.bootstrap.outputs.mode }}

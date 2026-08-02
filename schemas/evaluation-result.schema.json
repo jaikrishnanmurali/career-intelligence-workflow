@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "runId", "evaluations"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "runId": { "type": "string", "minLength": 1 },
+    "evaluations": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url", "verdict", "score", "why", "cautions", "hardBlocker"],
+        "properties": {
+          "url": { "type": "string", "format": "uri", "maxLength": 4000 },
+          "verdict": { "enum": ["recommended", "possible", "other", "hard_blocked"] },
+          "score": { "type": "number", "minimum": 1, "maximum": 5 },
+          "why": { "type": "string", "minLength": 1, "maxLength": 1000 },
+          "cautions": { "type": "string", "maxLength": 1000 },
+          "hardBlocker": { "type": "string", "maxLength": 1000 }
+        }
+      }
+    }
+  }
+}

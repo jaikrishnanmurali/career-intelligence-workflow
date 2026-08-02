@@ -14,7 +14,7 @@ The installer and tests use fictional data. The profile importer excludes Career
 
 A recurring workflow must run from a private Career Ops repository. Store email values as GitHub Actions secrets. Use a Resend key with sending-only access and restrict it to the verified domain where supported.
 
-The workflow needs write permission only to save the extension's recommendation state and latest report.
+The bootstrap and delivery jobs need write permission only for the dedicated state branch. Codex and Claude Code jobs use read-only repository permissions, receive no persisted Git credentials or Resend key, and return bounded JSON for validation on a fresh runner.
 
 ## If a secret is exposed
 

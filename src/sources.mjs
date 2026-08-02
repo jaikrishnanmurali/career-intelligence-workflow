@@ -2,6 +2,8 @@ import {
   ATS_DIRECTORIES,
   DEFAULT_ATS_BOARDS_PER_SOURCE,
   DEFAULT_MAX_SCAN_MINUTES,
+  ENABLED_ATS_SOURCES,
+  ENABLED_DIRECT_SOURCES,
   WTTJ_QUERIES,
 } from './config.mjs';
 import {
@@ -241,7 +243,7 @@ async function jobtech(now) {
         ].filter(Boolean).join(', '),
         description: item.description?.text_formatted || item.description?.text,
         postedAt: epoch(item.publication_date),
-        postedAtEvidence: 'Arbetsförmedlingen JobStream publication_date timestamp',
+        postedAtEvidence: 'ArbetsfÃ¶rmedlingen JobStream publication_date timestamp',
         source: 'platsbanken-jobstream',
       });
     })
@@ -326,12 +328,12 @@ async function fetchAshby(slug) {
 
 function workdayDate(label, now) {
   if (/posted\s+today/i.test(label || '')) {
-    return { postedAt: now.getTime(), evidence: 'Workday says “Posted Today”' };
+    return { postedAt: now.getTime(), evidence: 'Workday says â€œPosted Todayâ€' };
   }
   if (/posted\s+yesterday/i.test(label || '')) {
     return {
       postedAt: now.getTime() - 86_400_000,
-      evidence: 'Workday says “Posted Yesterday”',
+      evidence: 'Workday says â€œPosted Yesterdayâ€',
     };
   }
   const match = String(label || '').match(/posted\s+(\d+)(\+?)\s*day/i);
@@ -450,7 +452,9 @@ export async function scanAllSources(state, scanStartedAt) {
   const sourceCursors = { ...(state.sourceCursors || {}) };
 
   const directResults = await Promise.all(
-    Object.entries(DIRECT_SOURCES).map(async ([name, fetcher]) => {
+    Object.entries(DIRECT_SOURCES)
+      .filter(([name]) => ENABLED_DIRECT_SOURCES.includes(name))
+      .map(async ([name, fetcher]) => {
       try {
         const items = await fetcher(now);
         return { name, jobs: items, error: null };
@@ -469,7 +473,11 @@ export async function scanAllSources(state, scanStartedAt) {
     });
   }
 
-  for (const name of Object.keys(ATS_DIRECTORIES)) {
+  for (const name of ENABLED_ATS_SOURCES) {
+    if (!ATS_DIRECTORIES[name] || !ATS_FETCHERS[name]) {
+      stats.push({ source: name, failures: 1, error: 'Unsupported ATS source in configuration.' });
+      continue;
+    }
     if (Date.now() >= deadline) {
       stats.push({ source: name, skipped: 'scan deadline reached' });
       continue;

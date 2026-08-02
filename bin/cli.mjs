@@ -14,6 +14,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { integrateCareerOps } from '../scripts/integrate-career-ops.mjs';
+import { supportedCareerOpsVersion } from '../src/career-ops.mjs';
 import { importCareerOpsProfile } from '../scripts/import-career-ops-profile.mjs';
 
 const SOURCE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -36,6 +37,7 @@ const DISTRIBUTION_ENTRIES = [
   'modes',
   'package.json',
   'reports/latest.example.json',
+  'schemas',
   'scripts',
   'src',
   'state/state.example.json',
@@ -86,9 +88,19 @@ async function runCommand(command, args, cwd) {
 
 export async function validateCareerOpsWorkspace(careerOpsRoot) {
   const root = path.resolve(careerOpsRoot);
+  if (!await exists(path.join(root, 'package.json')) || !await exists(path.join(root, 'AGENTS.md'))) {
+    throw new Error(
+      `Career Ops was not found at ${root}. Run "npx @santifer/career-ops init", `
+      + 'enter the new career-ops folder, complete its chat onboarding, then run this setup command again.',
+    );
+  }
+
   const required = [
     'AGENTS.md',
-    'modes',
+    'modes/scan.md',
+    'scan.mjs',
+    'portals.yml',
+    'fingerprint-core.mjs',
     'config/profile.yml',
     'cv.md',
     'package.json',
@@ -104,6 +116,11 @@ export async function validateCareerOpsWorkspace(careerOpsRoot) {
   const packageJson = JSON.parse(packageJsonText.replace(/^\uFEFF/, ''));
   if (packageJson.name !== 'career-ops') {
     throw new Error(`Expected a Career Ops workspace at ${root}; package name is ${packageJson.name || 'missing'}.`);
+  }
+  if (!supportedCareerOpsVersion(packageJson.version)) {
+    throw new Error(
+      `Career Ops ${packageJson.version || 'unknown'} is not supported. This release requires Career Ops 1.24.x.`,
+    );
   }
   return { root, version: packageJson.version || 'unknown' };
 }
@@ -185,9 +202,9 @@ function printHelp() {
     'Career Intelligence Workflow',
     '',
     'Usage:',
-    '  career-intelligence-workflow init [--root <career-ops-directory>]',
+    '  career-intelligence-workflow setup [--root <career-ops-directory>]',
     '',
-    'The init command requires a completed Career Ops profile and cv.md.',
+    'Setup requires Career Ops 1.24.x with a completed profile and cv.md.',
     'It installs a namespaced extension. It does not send email or enable a schedule.',
     '',
   ].join('\n'));
@@ -208,7 +225,7 @@ if (isMain) {
   const command = process.argv[2] || 'help';
   if (command === 'help' || command === '--help' || command === '-h') {
     printHelp();
-  } else if (command === 'init') {
+  } else if (command === 'setup' || command === 'init') {
     const root = path.resolve(argumentValue('--root') || process.cwd());
     installIntoCareerOps(root)
       .then((result) => {
@@ -219,8 +236,9 @@ if (isMain) {
           '',
           'Next:',
           '1. Open Codex or Claude from the Career Ops root.',
-          '2. Say: "Set up my 12-hour Career Intelligence job digest."',
-          '3. Review the imported rules and run the no-email smoke scan.',
+          '2. Say: "Set up my zero-token 12-hour Discovery Digest."',
+          '3. Review the generated role, location and language scan rules.',
+          '4. Run the doctor, tests and no-email structured scan before enabling delivery.',
           '',
           'No email was sent and no recurring workflow was enabled.',
           '',

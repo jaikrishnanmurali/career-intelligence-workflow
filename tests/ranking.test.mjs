@@ -1,136 +1,74 @@
 import assert from 'node:assert/strict';
-import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
-process.env.CAREER_PROFILE_PATH = fileURLToPath(
-  new URL('../config/profile.example.yml', import.meta.url),
-);
-
-const {
-  experienceSignal,
+import {
   familyFor,
   languageBlocker,
   locationFor,
   shortlistCandidates,
-} = await import('../src/ranking.mjs');
+} from '../src/ranking.mjs';
 
 const scanStartedAt = '2026-07-30T20:00:00.000Z';
 
-test('recognizes adjacent role titles and priority locations', () => {
+test('uses configurable role families and locations', () => {
   const family = familyFor({
-    title: 'Customer Onboarding Specialist',
-    description: 'Support onboarding, adoption, and the customer journey.',
+    title: 'Customer Education Specialist',
+    description: 'Create training content and customer onboarding programmes.',
   });
-  assert.equal(family.family.id, 'customer-success');
-  assert.equal(locationFor('Dublin, Ireland').group.id, 'ireland');
-  assert.equal(locationFor('Europe Remote').group.id, 'europe-remote');
+  assert.equal(family.family.id, 'customer-education');
+  assert.equal(locationFor('Example City, Example Country').group.id, 'home');
+  assert.equal(locationFor('Remote, Europe').group.id, 'europe-remote');
 });
 
-test('treats mandatory local language wording as a hard blocker', () => {
+test('blocks mandatory unsupported languages but keeps optional wording', () => {
   assert.equal(languageBlocker('Fluent German is required for this role.'), 'german');
   assert.equal(languageBlocker('German is helpful but not required.'), null);
 });
 
-test('keeps verified, likely, and newly discovered roles distinct', () => {
+test('keeps verified, likely and newly discovered freshness distinct', () => {
   const base = {
     company: 'Example',
-    title: 'Customer Success Specialist',
-    location: 'Dublin, Ireland',
-    description: 'Customer onboarding, adoption, and retention.',
+    title: 'Customer Education Specialist',
+    location: 'Example City',
+    description: 'Training content and customer onboarding.',
     source: 'test',
   };
   const { candidates } = shortlistCandidates([
-    {
-      ...base,
-      url: 'https://example.com/verified',
-      postedAt: '2026-07-30T15:00:00.000Z',
-      postingPrecision: 'exact',
-      postedAtEvidence: 'Exact source timestamp',
-    },
-    {
-      ...base,
-      url: 'https://example.com/likely',
-      postedAt: scanStartedAt,
-      postingPrecision: 'relative',
-      postedAtEvidence: 'Workday says “Posted Today”',
-    },
-    {
-      ...base,
-      url: 'https://example.com/new',
-      postedAt: null,
-      postingPrecision: 'unknown',
-    },
-    {
-      ...base,
-      url: 'https://example.com/old',
-      postedAt: '2026-07-30T07:00:00.000Z',
-      postingPrecision: 'exact',
-    },
-  ], {
-    seenUrls: {},
-  }, scanStartedAt);
-
-  assert.deepEqual(
-    candidates.map((item) => item.freshness).sort(),
-    ['likely', 'newly_discovered', 'verified'],
-  );
+    { ...base, company: 'Verified Example', url: 'https://example.test/verified', postedAt: '2026-07-30T15:00:00.000Z', postingPrecision: 'exact' },
+    { ...base, company: 'Likely Example', url: 'https://example.test/likely', postedAt: scanStartedAt, postingPrecision: 'relative', postedAtEvidence: 'Posted Today' },
+    { ...base, company: 'New Example', url: 'https://example.test/new', postedAt: null, postingPrecision: 'unknown' },
+    { ...base, company: 'Old Example', url: 'https://example.test/old', postedAt: '2026-07-30T07:00:00.000Z', postingPrecision: 'exact' },
+  ], { seenUrls: {} }, scanStartedAt);
+  assert.deepEqual(candidates.map((item) => item.freshness).sort(), ['likely', 'newly_discovered', 'verified']);
 });
 
-test('does not repeat an untimestamped role already in saved state', () => {
-  const url = 'https://example.com/existing';
+test('does not repeat an untimestamped role already saved as seen', () => {
+  const url = 'https://example.test/existing';
   const result = shortlistCandidates([{
     url,
     company: 'Example',
-    title: 'Community Operations Specialist',
-    location: 'Europe Remote',
-    description: 'Member experience and community program delivery.',
+    title: 'Partner Enablement Specialist',
+    location: 'Example City',
+    description: 'Partner onboarding and sales enablement.',
     source: 'test',
     postedAt: null,
-  }], {
-    seenUrls: {
-      [url]: { firstSeenAt: '2026-07-29T20:00:00.000Z' },
-    },
-  }, scanStartedAt);
+  }], { seenUrls: { [url]: { firstSeenAt: '2026-07-29T20:00:00.000Z' } } }, scanStartedAt);
   assert.equal(result.candidates.length, 0);
 });
 
-
-
-test('rejects country-specific non-EU remote roles and generic false positives', () => {
-  assert.equal(locationFor('United States only, Remote').eligible, false);
-  assert.equal(locationFor('Worldwide / Europe Remote').eligible, true);
-  assert.equal(familyFor({
-    title: 'BI Specialist',
-    description: 'Financial reporting and database maintenance.',
-  }), null);
-});
-
-
-test('recognizes common local-language requirement wording and removes weak manager roles', () => {
-  assert.equal(languageBlocker('Du hast sehr gute Deutschkenntnisse.'), 'german');
-  assert.equal(languageBlocker('Français et anglais professionnels niveau B2+.'), 'french');
-  const result = shortlistCandidates([{
-    url: 'https://example.com/manager',
+test('deduplicates the same company, title and location across source URLs', () => {
+  const base = {
     company: 'Example',
-    title: 'Community Operations Manager',
-    location: 'Dublin, Ireland',
-    description: 'Lead a team of 12, own hiring, and deliver community programs.',
-    postedAt: '2026-07-30T18:00:00.000Z',
+    title: 'Partner Enablement Specialist',
+    location: 'Example City',
+    description: 'Partner onboarding and sales enablement.',
+    postedAt: scanStartedAt,
     postingPrecision: 'exact',
-    source: 'test',
-  }], { seenUrls: {} }, scanStartedAt);
-  assert.equal(result.candidates.length, 0);
-});
-
-test('frames experience requirements as core, adjacent, or stretch', () => {
-  assert.deepEqual(
-    experienceSignal('At least 3 years of relevant professional experience.'),
-    { minimumYears: 3, band: 'core', penalty: 0, caution: '' },
-  );
-  const adjacent = experienceSignal('Minimum 5 years of customer success experience.');
-  assert.equal(adjacent.band, 'adjacent');
-  assert.match(adjacent.caution, /within total experience/i);
-  const stretch = experienceSignal('7+ years of community operations experience required.');
-  assert.equal(stretch.band, 'stretch');
-  assert.ok(stretch.penalty > adjacent.penalty);
+  };
+  const result = shortlistCandidates([
+    { ...base, source: 'feed', url: 'https://feed.example.test/jobs/42' },
+    { ...base, source: 'ats', url: 'https://ats.example.test/jobs/42', description: `${base.description} Richer description.` },
+  ], { seenUrls: {}, seenPostingKeys: {} }, scanStartedAt);
+  assert.equal(result.candidates.length, 1);
+  assert.equal(result.candidates[0].source, 'ats');
 });

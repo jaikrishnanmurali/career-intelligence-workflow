@@ -14,172 +14,135 @@ import { parse, stringify } from 'yaml';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 async function exists(filePath) {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
+  try { await access(filePath); return true; } catch { return false; }
 }
 
-function slug(value) {
-  return String(value || '')
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 48) || 'target-role';
-}
-
-function cleanList(values) {
-  return [...new Set(
-    (Array.isArray(values) ? values : [values])
-      .map((value) => String(value || '').trim())
-      .filter(Boolean),
-  )];
-}
-
-function buildRoleFamilies(profile) {
-  const primary = cleanList(profile.target_roles?.primary);
-  const archetypes = Array.isArray(profile.target_roles?.archetypes)
-    ? profile.target_roles.archetypes
+export function buildDeploymentDraft(careerOpsProfile) {
+  const configuredTimezone = String(careerOpsProfile?.location?.timezone || '').trim();
+  const timezone = configuredTimezone.includes('/') ? configuredTimezone : 'UTC';
+  const primaryRoles = Array.isArray(careerOpsProfile?.target_roles?.primary)
+    ? careerOpsProfile.target_roles.primary.map(String).map((value) => value.trim()).filter(Boolean)
     : [];
-  const roles = new Map();
-
-  for (const title of primary) {
-    roles.set(title.toLowerCase(), {
-      id: slug(title),
-      label: title,
+  const preferredTitles = Array.isArray(careerOpsProfile?.target_roles?.title_preferences?.preferred)
+    ? careerOpsProfile.target_roles.title_preferences.preferred.map(String).map((value) => value.trim()).filter(Boolean)
+    : [];
+  const archetypes = Array.isArray(careerOpsProfile?.target_roles?.archetypes)
+    ? careerOpsProfile.target_roles.archetypes : [];
+  const familyNames = [...new Set([
+    ...archetypes.map((item) => String(item?.name || '').trim()),
+    ...primaryRoles,
+  ].filter(Boolean))];
+  const roleFamilies = familyNames.map((name, index) => ({
+    id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `role-family-${index + 1}`,
+    label: name,
+    priority: Math.max(1, 4 - index * 0.25),
+    title_terms: [...new Set([
+      name,
+      ...preferredTitles.filter((title) => title.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(title.toLowerCase())),
+    ])],
+    responsibility_terms: [name],
+  }));
+  if (!roleFamilies.length) {
+    roleFamilies.push({
+      id: 'confirm-target-role',
+      label: 'Confirm target role',
       priority: 4,
-      terms: [title.toLowerCase()],
-      responsibility_terms: [],
+      title_terms: ['replace this with a target title'],
+      responsibility_terms: ['replace this with a responsibility'],
     });
   }
-
-  const fitPriority = { primary: 4, secondary: 3.4, adjacent: 2.8 };
-  for (const archetype of archetypes) {
-    const name = String(archetype?.name || '').trim();
-    if (!name) continue;
-    const key = name.toLowerCase();
-    const existing = roles.get(key);
-    const priority = fitPriority[String(archetype?.fit || '').toLowerCase()] || 3;
-    if (existing) {
-      existing.priority = Math.max(existing.priority, priority);
-    } else {
-      roles.set(key, {
-        id: slug(name),
-        label: name,
-        priority,
-        terms: [name.toLowerCase()],
-        responsibility_terms: [],
-      });
-    }
-  }
-
-  if (!roles.size) {
-    roles.set('target role', {
-      id: 'target-role',
-      label: 'Target role',
-      priority: 3,
-      terms: ['target role'],
-      responsibility_terms: [],
-    });
-  }
-  return [...roles.values()];
-}
-
-function buildLocationGroup(profile) {
-  const values = cleanList([
-    profile.location?.city,
-    profile.location?.country,
-    ...(Array.isArray(profile.location?.authorized_in)
-      ? profile.location.authorized_in
-      : []),
-  ]);
-  const label = cleanList([
-    profile.location?.city,
-    profile.location?.country,
-  ]).join(', ') || 'Configured Career Ops location';
+  const preferredLocations = Array.isArray(careerOpsProfile?.location?.preferred_locations)
+    ? careerOpsProfile.location.preferred_locations
+      .map((item) => String(item?.location || item || '').trim()).filter(Boolean)
+    : [];
+  const homeLocation = [careerOpsProfile?.candidate?.location, careerOpsProfile?.location?.city, careerOpsProfile?.location?.country]
+    .map((value) => String(value || '').trim()).filter(Boolean);
+  const locations = [...new Set([...preferredLocations, ...homeLocation])];
+  const locationGroups = locations.length
+    ? locations.map((location, index) => ({
+      id: index === 0 ? 'home' : `preference-${index + 1}`,
+      label: location,
+      score: Math.max(5, 35 - index * 7),
+      terms: [location],
+    }))
+    : [{ id: 'home', label: 'Confirm home market', score: 35, terms: ['replace with a location'] }];
+  const verifiedLanguages = new Set(
+    (Array.isArray(careerOpsProfile?.language_preferences?.verified)
+      ? careerOpsProfile.language_preferences.verified : [])
+      .map((item) => String(item?.language || item || '').trim().toLowerCase())
+      .filter(Boolean),
+  );
+  const languageUniverse = ['swedish', 'dutch', 'german', 'french', 'danish', 'norwegian', 'finnish', 'italian', 'spanish', 'portuguese', 'polish', 'czech'];
   return {
-    id: 'career-ops-home',
-    label,
-    score: 35,
-    terms: values.length ? values.map((value) => value.toLowerCase()) : ['remote'],
-  };
-}
-
-export function buildDiscoveryDraft(careerOpsProfile) {
-  const roleFamilies = buildRoleFamilies(careerOpsProfile);
-  return {
-    version: 1,
+    version: 2,
     configured: false,
-    career_ops: {
-      source: '../../config/profile.yml',
-      note: 'Imported as a draft. Confirm search-specific rules through the Career Intelligence onboarding conversation.',
-    },
-    search: {
+    digest: {
+      mode: 'discovery',
+      provider: 'codex',
       lookback_hours: 12,
-      experience: {
-        core_years: 0,
-        total_years_including_adjacent: 0,
-        behavior: 'caution',
-      },
-      manager: {
-        prefer_individual_contributor: false,
-        title_penalty: 14,
-        people_management_penalty: 24,
-        low_fit_manager_floor: 64,
-      },
-      role_families: roleFamilies,
-      title_excludes: [],
-      individual_contributor_title_signals: [],
-      location: {
-        home_group_id: 'career-ops-home',
-        groups: [buildLocationGroup(careerOpsProfile)],
-        obvious_out_of_scope_phrases: [],
-        non_target_country_terms: [],
-        global_scope_signals: ['worldwide', 'global', 'europe', 'emea', 'remote'],
-      },
-      languages: {
-        exclude_when_hard_required: [],
-      },
+      include_unscored: true,
     },
-    discovery: {
-      welcome_to_the_jungle_queries: roleFamilies.map((role) => role.label.toLowerCase()),
+    schedule: {
+      timezone,
+      weekdays_only: false,
+      minimum_gap_hours: 6,
     },
-    runtime: {
+    scanner: {
+      direct_sources: ['platsbanken-jobstream', 'arbeitnow', 'thehub', 'wttj', 'jobicy', 'himalayas', 'remotive', 'remoteok'],
+      ats_sources: ['greenhouse', 'lever', 'ashby', 'workday'],
+      ats_boards_per_source: 120,
+      max_scan_minutes: 4,
+      max_page_verifications: 20,
       request_timeout_ms: 12000,
-      timezone: String(careerOpsProfile.location?.timezone || '').includes('/') ? careerOpsProfile.location.timezone : 'UTC',
-      ats_boards_per_source: 400,
-      max_scan_minutes: 18,
-      max_page_verifications: 60,
+      search_queries: roleFamilies.flatMap((family) => family.title_terms).slice(0, 20),
     },
+    search_profile: {
+      role_families: roleFamilies,
+      title_context_terms: [...new Set(roleFamilies.flatMap((family) => family.title_terms)
+        .flatMap((term) => term.toLowerCase().split(/[^a-z0-9]+/)).filter((term) => term.length > 3))],
+      title_excludes: ['software engineer', 'data scientist', 'doctoral', 'postdoctoral', 'chief', 'vice president', 'director', 'head of'],
+      ic_title_signals: ['specialist', 'coordinator', 'associate', 'analyst', 'consultant', 'advisor'],
+      location_groups: locationGroups,
+      location_excludes: ['united states only', 'canada only', 'india only', 'apac only'],
+      home_location_ids: ['home'],
+      unsupported_languages: languageUniverse.filter((language) => !verifiedLanguages.has(language)),
+      manager_title_penalty: 14,
+      people_management_penalty: 24,
+      ic_title_bonus: 10,
+      priority_score: 88,
+      worth_look_score: 64,
+    },
+    budget: {
+      max_agent_turns: 12,
+      max_agent_minutes: 20,
+      max_full_evaluations: 30,
+    },
+    health: { failure_warning_after: 2 },
   };
 }
+
+// Compatibility export for integrations built before the delivery-only design.
+export const buildDiscoveryDraft = buildDeploymentDraft;
 
 export async function importCareerOpsProfile(careerOpsRoot, outputPath, { force = false } = {}) {
   const root = path.resolve(careerOpsRoot);
   const inputPath = path.join(root, 'config', 'profile.yml');
   const destination = path.resolve(outputPath);
-
   if (!await exists(inputPath)) {
     throw new Error(`Career Ops profile not found at ${inputPath}. Complete Career Ops onboarding first.`);
   }
   if (await exists(destination) && !force) {
-    throw new Error(`Refusing to overwrite ${destination}. Use --force only after reviewing the existing discovery profile.`);
+    throw new Error(`Refusing to overwrite ${destination}. Use --force only after reviewing it.`);
   }
-
   const profile = parse(await readFile(inputPath, 'utf8'));
   if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
     throw new Error(`Career Ops profile must be a YAML object: ${inputPath}`);
   }
-
-  const draft = buildDiscoveryDraft(profile);
+  const draft = buildDeploymentDraft(profile);
   await mkdir(path.dirname(destination), { recursive: true });
   await writeFile(
     destination,
-    `# Generated from Career Ops. Review and confirm through agent onboarding before deployment.\n${stringify(draft, { lineWidth: 0 })}`,
+    `# Drafted from Career Ops. Review role terms, locations and languages, then set configured: true.\n${stringify(draft, { lineWidth: 0 })}`,
     'utf8',
   );
   return { inputPath, destination, draft };
@@ -190,16 +153,13 @@ function argumentValue(name) {
   return index >= 0 ? process.argv[index + 1] : '';
 }
 
-const isMain = process.argv[1]
-  && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   const careerOpsRoot = path.resolve(argumentValue('--root') || path.join(ROOT, '..', '..'));
   const output = path.resolve(argumentValue('--output') || path.join(ROOT, 'config', 'profile.yml'));
   importCareerOpsProfile(careerOpsRoot, output, { force: process.argv.includes('--force') })
     .then((result) => {
-      process.stdout.write(`Imported Career Ops profile into ${result.destination} as an unconfirmed draft.\n`);
-      process.stdout.write('Open the Career Ops root in Codex or Claude and ask to set up the 12-hour job digest.\n');
+      process.stdout.write(`Created structured-scan settings at ${result.destination}. Review them before enabling GitHub Actions.\n`);
     })
     .catch((error) => {
       process.stderr.write(`${error.message}\n`);

@@ -1,27 +1,36 @@
 # Install or deploy the Career Ops companion
 
-Career Ops is required and must be onboarded before this extension is installed.
+Career Ops 1.24.x is required and must be onboarded first.
 
 ## Install
 
-From the Career Ops root, use the documented `npx` command. The installer must:
+From the Career Ops root:
 
-1. verify `package.json`, `AGENTS.md`, `modes/`, `config/profile.yml`, and `cv.md`;
-2. create `extensions/career-intelligence-workflow` without overwriting an existing extension;
-3. import an unconfirmed private discovery draft from Career Ops;
-4. add namespaced Codex and Claude skill adapters without overwriting custom files;
-5. install dependencies;
-6. leave email and scheduling disabled.
+```bash
+npx --yes github:jaikrishnanmurali/career-intelligence-workflow setup
+```
+
+The installer verifies the Career Ops scan contract, creates the namespaced extension, adds Codex and Claude Code adapters, installs dependencies and leaves email and scheduling disabled. It must not overwrite an existing extension.
+
+If Career Ops is missing, explain the official quick start without assuming terminal knowledge:
+
+```bash
+npx @santifer/career-ops init
+cd career-ops
+codex
+# or: claude
+```
+
+Finish Career Ops chat onboarding, then run this project’s setup command from that folder. The ChatGPT and Claude websites cannot perform the installation.
 
 ## Enable cloud delivery
 
-Only after onboarding, tests, and a no-email smoke scan pass:
+1. Start with Discovery Digest and explain its structured sources and concrete coverage gaps using `docs/DIGEST_MODES.md`.
+2. Confirm the live repository is private and canonical.
+3. Keep the Smart feature flag disabled. If the user later chooses Smart, explain provider cost and data sharing and obtain consent.
+4. Configure Resend and provider credentials through `gh secret set` or GitHub’s secret UI, never chat.
+5. Ask before installing `.github/workflows/career-intelligence.yml`.
+6. Run `guard-only`, then one deliberate real delivery.
+7. Verify the `career-intelligence-state` branch contains only allowlisted runtime state.
 
-1. Follow `docs/RESEND.md` without asking for the API key in chat.
-2. Confirm the Career Ops repository is private.
-3. Ask before running `npm run workflow:install -- --root ../..`.
-4. Add the three documented GitHub Actions secrets.
-5. Run the workflow manually once and review its report and email.
-6. Keep the recurring schedule only after the manual run succeeds.
-
-The extension recommends jobs. Career Ops evaluates selected URLs and handles later application work. Neither system submits an application automatically.
+The workflow uses Codex or Claude Code only as a bounded cloud runner. Existing Career Ops users can keep another agent for normal work.

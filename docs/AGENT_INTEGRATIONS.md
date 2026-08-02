@@ -1,57 +1,40 @@
-# Codex and Claude inside Career Ops
+# Codex and Claude Code
 
-Start the agent from the Career Ops root, not from the extension directory. This ensures Career Ops remains the governing workflow and the extension can reuse its profile, CV, and evidence rules.
+Career Ops supports more agents than this extension. Existing users can keep their chosen agent for normal Career Ops work. Career Intelligence currently supports Codex and Claude Code for guided setup and the optional Smart cloud runner.
 
-## Installed adapters
+## Setup agent
 
-The installer creates:
+Run Codex or Claude Code from the Career Ops root. The setup agent should:
 
-```text
-.agents/skills/career-intelligence/SKILL.md
-.claude/skills/career-intelligence/SKILL.md
-```
+- verify Career Ops onboarding;
+- draft deterministic scan rules from Career Ops;
+- show those role, location, language and seniority rules for confirmation;
+- run the doctor, tests and a no-email scan;
+- guide GitHub browser sign-in and private-repository creation;
+- collect secrets through `gh`, never through chat;
+- leave Smart disabled unless the user explicitly accepts cost and privacy.
 
-Both adapters point to the canonical extension skill under `extensions/career-intelligence-workflow/.agents/skills/`. The adapter is namespaced and does not replace the Career Ops router.
+The ChatGPT and Claude websites cannot run the installer or configure the repository.
 
-## Codex
+## Discovery Digest
 
-From the Career Ops root:
+Discovery invokes neither provider action. The Node scanner uses public feeds and rolling ATS endpoints and therefore consumes zero model tokens. It does not sign in to LinkedIn, run broad search-engine queries or operate dynamic browser pages.
 
-```bash
-codex
-```
+## Smart scheduled workers
 
-Example requests:
+Smart uses one of:
 
-```text
-Use $career-intelligence to set up my 12-hour job digest.
-Run the Career Intelligence no-email smoke scan.
-Explain why this recommendation was labelled newly discovered.
-Hand this selected URL to the Career Ops evaluation pipeline.
-```
+- `openai/codex-action`;
+- `anthropics/claude-code-action`.
 
-If explicit skill invocation is unavailable, ask for the same task in plain language.
+The discovery worker receives a bounded Career Ops search plan and the structured source receipt. The evaluation worker receives only the prepared candidate batch. Neither worker receives the Resend key or persisted Git credentials. Neither may submit an application, tailor a CV, edit the tracker or spawn subagents.
 
-## Claude Code
+A clean runner validates the returned JSON before applying it. Email is handled by another clean runner.
 
-From the Career Ops root:
+## Authentication and cost
 
-```bash
-claude
-```
+Codex in GitHub Actions uses `OPENAI_API_KEY`. A ChatGPT or Codex subscription is not an API balance for GitHub Actions.
 
-Example:
+Claude Code uses the supported cloud credential stored as `CLAUDE_CODE_OAUTH_TOKEN`.
 
-```text
-/career-intelligence Set up my 12-hour job digest.
-```
-
-## Agent boundary
-
-Codex or Claude may read Career Ops files during onboarding and explanation. They may write the extension profile only after showing the interpreted rules and receiving confirmation.
-
-The agent must not ask for an API key in chat, send email without confirmation, install a workflow without confirmation, tailor a CV through the extension, edit the Career Ops tracker, or submit an application.
-
-## Zero-token boundary
-
-Agent onboarding uses the user's normal Codex or Claude allowance. The scheduled scanner is different: it runs ordinary Node.js code in GitHub Actions and uses zero model API tokens.
+Provider authentication and action versions can change. Check current official provider documentation when setting up or rotating credentials, restrict the key and set provider-side spending limits.

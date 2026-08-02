@@ -1,49 +1,71 @@
 # Troubleshooting
 
-## Installation says Career Ops is incomplete
+## Career Ops is missing or unsupported
 
-Run the installer from the Career Ops root after completing its onboarding. The root must contain `package.json` with the `career-ops` package name, `AGENTS.md`, `modes/`, `config/profile.yml`, and `cv.md`.
+Run setup from a Career Ops root containing `package.json`, `AGENTS.md`, `modes/scan.md`, `scan.mjs`, `portals.yml`, `config/profile.yml` and `cv.md`.
 
-## The extension already exists
+This release supports Career Ops 1.24.x. A 1.23 or 1.25 workspace stops deliberately because the scan-history or mode contract may differ. Update the extension rather than bypassing the check.
 
-The installer refuses to overwrite `extensions/career-intelligence-workflow`. Review and update the existing extension instead of rerunning a fresh install.
+## I started in ChatGPT or the Claude website
 
-## Diagnostics say the profile is unconfirmed
+Those websites cannot install the files. Open PowerShell, Terminal or VS Code’s terminal, enter the Career Ops folder and start `codex` or `claude` there.
 
-Start Codex or Claude from the Career Ops root and ask to set up the 12-hour digest. The imported draft intentionally says `configured: false` until the user reviews the search rules.
+## I use another Career Ops agent
 
-## YAML fails to load
+Keep using it. Install this extension normally, then use Codex or Claude Code only for setup and the optional Smart cloud runner. Your normal Career Ops workflow does not need to move.
 
-Ask the agent to repair the extension's private `config/profile.yml` and rerun diagnostics. Do not edit Career Ops `config/profile.yml` merely to satisfy the extension.
+## The workflow says the repository is public
 
-## The smoke scan returns no recommendations
+Stop. Make the live Career Ops repository private before retrying. Do not weaken the workflow gate.
 
-This can be correct. Inspect `reports/latest.json` for source failures, freshness decisions, hard blockers, and candidates outside the bounded verification budget. Widen one confirmed rule at a time.
+## The workflow forgot old jobs
 
-## "Posted today" is not verified
+Check whether `career-intelligence-state` exists and whether the restore step succeeded. A fresh runner without that branch has no scan history. Do not solve this by committing all of `data/` to main; repair the state-branch permission or remote.
 
-"Today" does not prove an age under 12 hours. The scanner labels relative evidence `likely`. An untimestamped live role is `newly_discovered` and appears once.
+## Smart Digest is partial
+
+Open the email or `reports/latest.json` and read the failed source names. Common causes are login walls, rate limits, changed page markup, inaccessible complete descriptions or missing provider credentials.
+
+A partial receipt means “the run cannot prove this lane completed,” not “there were no jobs.” The next run keeps the source marked for catch-up.
+
+## I do not see LinkedIn jobs
+
+Confirm Smart Digest is selected, `CAREER_OPS_AGENT_ENABLED=true` is set and `portals.yml` contains enabled LinkedIn web queries. Discovery Digest does not run them.
+
+Even Smart Digest has no personal signed-in LinkedIn session in GitHub Actions. Search can discover a LinkedIn URL while the full page remains blocked. The coverage receipt should record that limitation. Add employer-site and ATS queries as complementary routes rather than claiming LinkedIn can always be traversed.
+
+## Discovery Digest says reduced coverage
+
+That is expected. It searched the configured public feeds and rolling ATS boards but did not run LinkedIn, browser or broad web-search layers. Switch to Smart only after the structured and email paths are proven and the additional coverage is worth the provider cost.
+
+## New jobs are unscored
+
+A model step may have failed or the number of discoveries exceeded `max_full_evaluations`. The job is still emailed by design. Increase the cap only after considering model cost and runtime.
+
+## A role has no exact posting time
+
+Unknown timestamp is not the same as old. If a live role is new to persistent scanner history, it can be emailed once with an “exact timestamp unavailable” note. It must not be described as proven to be inside 12 hours.
 
 ## Email fails
 
-Run:
+Run diagnostics without printing secrets:
 
 ```bash
 npm run doctor -- --email --career-ops-root ../..
 ```
 
-Check the key, sender, recipient restriction, and exact GitHub secret names without printing the key. If the sender is `onboarding@resend.dev`, the recipient must be the email associated with the Resend account. Other recipients require a verified domain, but that domain does not need a live website.
+Check the exact secret names, Resend sender restrictions and recipient. With `onboarding@resend.dev`, the recipient must be the Resend account email.
 
-## The workflow cannot find the extension
+A 409 is treated as an error. The outbox remains prepared and a later attempt resends the identical payload with the same idempotency key.
 
-The supported path is `extensions/career-intelligence-workflow`. If the folder was renamed, update every workflow working-directory and saved-state path consistently.
+## The second retry rescanned
 
-## The schedule did not run exactly on time
+It should not rescan when the slot has a durable `prepared` outbox. Check whether the first attempt successfully pushed the state branch before the delivery step. The gate output should say `resume_delivery=true`.
 
-Scheduled GitHub workflows can be delayed. The installed workflow has an initial attempt and two retries for each delivery slot. Check all three attempts in the Actions tab.
+## The workflow did not start at local wall-clock time
 
-A later attempt marked as skipped is normal when an earlier attempt delivered the slot. If no attempt started, confirm Actions is enabled and the workflow exists on the default branch. Run `guard-only` to test the gate without scanning or emailing. If all three attempts ran and failed, inspect the first failing step; the retry guard does not repair invalid secrets or a persistent provider failure.
+The cron entries are UTC. The config timezone controls slot dates and display, not GitHub’s scheduler. Adjust all six cron entries when the desired UTC offset changes.
 
-## Codex or Claude cannot find the skill
+## The extension already exists
 
-Start a new session from the Career Ops root. Confirm the installed adapter exists under `.agents/skills/career-intelligence/` or `.claude/skills/career-intelligence/`.
+The installer refuses to overwrite it. Review and update the installed extension deliberately; do not delete private state or config without a backup.

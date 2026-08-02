@@ -2,7 +2,7 @@ interface:
   display_name: "Career Intelligence"
   short_description: "Email job recommendations from Career Ops"
   brand_color: "#14B8A6"
-  default_prompt: "Use $career-intelligence to set up my 12-hour job recommendation digest inside Career Ops."
+  default_prompt: "Use $career-intelligence to set up my zero-token 12-hour Discovery Digest inside Career Ops."
 
 policy:
   allow_implicit_invocation: true

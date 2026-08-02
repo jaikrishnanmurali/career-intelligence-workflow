@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "runId", "sources", "discoveries"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "runId": { "type": "string", "minLength": 1 },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status", "reason"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["completed_structured", "completed_browser", "completed_search", "not_required", "partial", "failed"] },
+          "reason": { "type": "string", "maxLength": 500 }
+        }
+      }
+    },
+    "discoveries": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sourceId", "url", "title", "company", "location", "postedAt", "description", "active"],
+        "properties": {
+          "sourceId": { "type": "string", "minLength": 1 },
+          "url": { "type": "string", "format": "uri", "maxLength": 4000 },
+          "title": { "type": "string", "minLength": 1, "maxLength": 300 },
+          "company": { "type": "string", "minLength": 1, "maxLength": 300 },
+          "location": { "type": "string", "maxLength": 300 },
+          "postedAt": { "type": ["string", "null"], "maxLength": 50 },
+          "description": { "type": "string", "maxLength": 4000 },
+          "active": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

@@ -1,12 +1,13 @@
-# Explain a recommendation
+# Explain a digest result
 
-Use this mode when the user asks why a role passed, failed, ranked highly, or disappeared.
+Read the Career Ops profile, the extension delivery config, `reports/latest.json` and the relevant coverage receipt.
 
-1. Read the Career Ops profile for candidate context.
-2. Read the extension profile for scan-specific rules.
-3. Read the relevant recommendation or rejection record in `reports/latest.json`.
-4. Trace the decision through role family, responsibility terms, location, freshness, hard-language rules, authorization wording, manager preference, experience caution, live-page verification, score, and saved-state deduplication.
-5. Use only evidence present in the record or posting. Do not invent missing requirements.
-6. If the result reveals a systematic error, propose a regression test before changing the rule.
+Explain three separate questions:
 
-End with one of: keep, review manually, or filtered by the configured rules. The user still decides whether Career Ops should evaluate the role.
+1. **Was the source attempted?** Name its completed, partial, failed or mode-excluded receipt.
+2. **Was the job discovered and deduplicated?** Use structured scanner URL/seen history and, for Smart additions, Career Ops `jd_fingerprint` history.
+3. **How was it presented?** Trace the complete-description verdict, explicit hard blocker or unscored overflow status.
+
+Do not infer that a source contained no jobs when it failed. Do not describe Discovery Digest as a complete scan. When helpful, contrast a structured ATS example with a LinkedIn-only or dynamic-page example.
+
+Use only recorded evidence. End with one of: keep, review manually, hard blocked by explicit evidence, or source needs catch-up. The user decides whether to send the URL into Career Ops application evaluation.

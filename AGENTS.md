@@ -2,36 +2,51 @@
 
 ## Purpose
 
-This repository is an email and always-on discovery companion for Career Ops. Career Ops owns the candidate profile, CV, application evaluation, tailoring, tracker, and later-stage workflow. This extension imports that foundation, adds a deterministic job scan, and sends a private recommendation digest through Resend.
+This repository is the scheduled discovery and email layer for Career Ops. Career Ops owns the CV, full career context, tailoring, tracker and application workflow. This extension owns the unattended structured scanner, its reviewed machine-readable search rules, delivery state and email.
 
 ## Foundation rule
 
-- Career Ops is required. Do not present or configure this project as a standalone career system.
+- Career Ops 1.24.x is required. Do not present this project as a standalone career system.
 - The supported layout is `career-ops/extensions/career-intelligence-workflow/`.
-- Start Codex or Claude from the Career Ops root. Read the root Career Ops instructions before this extension's mode files.
-- Treat Career Ops `config/profile.yml` and `cv.md` as the candidate source of truth. Store only search-specific additions in this extension's private `config/profile.yml`.
+- Start Codex or Claude Code from the Career Ops root and read its instructions first.
+- Career Ops `config/profile.yml`, `cv.md`, `portals.yml`, `modes/scan.md` and `data/scan-history.tsv` remain source-of-truth context for interactive work and the optional Smart layer.
+- Setup derives a deterministic scan profile from Career Ops. The user must review and confirm its role terms, locations and language rules before scheduling. Do not hard-code one person's profile in source files.
 
-## Product boundary
+## Discovery and recommendation boundary
 
-- Discover, normalize, verify, rank, deduplicate, and email job recommendations.
-- Keep `verified`, `likely`, and `newly_discovered` freshness evidence distinct.
-- Never submit an application, fill a form, message an employer, tailor a CV, or modify the Career Ops tracker.
-- When the user selects a recommendation, hand its URL and evidence summary to Career Ops.
-- The scheduled runtime must remain deterministic and make no model API calls.
+- Always run `scripts/run-structured-scan.mjs` as the scheduled discovery core. It searches configured public feeds and rolling Greenhouse, Lever, Ashby and Workday boards without model tokens.
+- Discovery Digest stops after that core and must be labelled reduced coverage. State plainly that LinkedIn-only, alert-only, search-index-only and browser-only jobs may be missed, with examples.
+- Smart Digest may use one bounded Codex or Claude Code worker for uncovered Career Ops browser and broad web-search sources, then one bounded full-description evaluation pass.
+- Do not invoke the full Career Ops application pipeline on a schedule.
+- The structured scanner owns feed normalization, canonical URL deduplication, freshness tiers, configurable filtering, bounded verification and deterministic ranking. Smart discoveries still reuse Career Ops history and `jd_fingerprint`.
+- Every enabled source must receive a coverage receipt. Missing, partial and failed sources must be visible and marked for catch-up.
+- A model score must never hide a structured recommendation. Email every new non-hard-blocked recommendation, including evaluation overflow as unscored.
+- Use a hard blocker only for explicit evidence such as an expired listing, mandatory unsupported language, impossible work location or incompatible authorization.
+- Unknown posting time is not itself a blocker. Say that the exact time is unavailable.
+
+## Delivery and state
+
+- Save the exact email payload to the dedicated state branch before calling Resend.
+- Retrying a prepared slot must reuse that payload and stable idempotency key without rescanning.
+- A delivered slot cannot be forced to send again.
+- Treat every non-2xx Resend response, including 409, as an error unless an independently saved delivery receipt already exists.
+- A successful zero-result run sends no email, records `no-recommendations` and closes the logical slot so retries stop.
+- Persist only the allowlisted Career Ops history and extension state files. Never push runtime state to the default branch.
 
 ## Privacy and consent
 
-- Never commit `.env`, credentials, email addresses, a real extension profile, live reports, previews, or scan state to the public source repository.
-- A live Career Ops deployment and its workflow must be private.
-- Never ask for an API key in chat, print a secret, send a real email, or install a recurring workflow without explicit confirmation.
+- A live deployment must use a private GitHub repository.
+- Never ask for an API key in chat, print a secret or commit `.env`.
+- Smart Digest sends private Career Ops and job context to the selected provider. Obtain explicit consent and explain model cost before enabling it.
+- Never submit an application, fill a form, message an employer, tailor a CV or edit the Career Ops tracker through this extension.
 - Public examples and tests must be fictional.
 
 ## Development
 
-- Node.js 22 or newer is required by this extension.
-- Keep model SDKs and model calls out of `src/`.
-- Add tests for installer, profile import, freshness, ranking, privacy, schedule guards, delivery idempotency, and email changes.
-- Run `npm test`, `npm run doctor`, and a bounded `npm run smoke` before release.
+- Node.js 22 or newer is required.
+- Pin and validate the supported Career Ops version and nine-column scan-history schema; fail closed on change.
+- Test coverage receipts, schema validation, deduplication, unscored overflow, durable outbox behavior, schedule guards, secret safety and Resend failures.
+- Run `npm test` and `npm run doctor` before release.
 
 ## Attribution
 

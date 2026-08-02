@@ -1,38 +1,35 @@
-# Set up the job digest
+# Set up the scheduled digest
 
-Use this mode after the extension installer has imported an unconfirmed draft from Career Ops.
+Use this mode from the root of an onboarded Career Ops 1.24.x workspace.
 
-## Read the foundation
+## Read first
 
-1. Confirm the current workspace is Career Ops and the extension is under `extensions/career-intelligence-workflow`.
-2. Read the Career Ops root `AGENTS.md`, `config/profile.yml`, and `cv.md`.
-3. Read the extension's `config/profile.yml`. It should say `configured: false` until review is complete.
-4. Do not copy personal contact details, full CV text, narrative, or proof points into the extension profile.
+1. Career Ops `AGENTS.md`, `config/profile.yml`, `cv.md`, `portals.yml` and `modes/scan.md`.
+2. Extension `docs/DIGEST_MODES.md`, `docs/PRIVACY.md` and `config/profile.yml`.
+3. Never ask for an API key in chat.
 
-## Ask only for missing scan rules
+## Start with Discovery Digest
 
-Translate ordinary answers into configuration. Ask in short rounds, covering only details Career Ops does not already establish:
+Explain that Discovery uses zero model tokens and searches configured public feeds plus rolling Greenhouse, Lever, Ashby and Workday boards. Give concrete limits: a LinkedIn-only result, an Indeed result with no employer-feed copy, a dynamic “Load more” page or an ATS company outside this run's shard may be missed.
 
-1. Adjacent role titles and responsibility signals the scan should search.
-2. Hard title exclusions and whether manager-titled roles should rank lower.
-3. Directly relevant experience and total experience including adjacent work.
-4. Location order, remote scope, and hard location exclusions.
-5. Languages that should block a role only when the posting makes them mandatory.
-6. Whether the default 12-hour lookback and twice-daily digest are acceptable, including the IANA timezone and delivery hours. Explain that each slot uses an initial attempt plus retries 20 and 40 minutes later.
+Smart Digest is an optional upgrade after Discovery and Resend are proven. It uses a billed Codex or Claude Code cloud worker for Career Ops browser/search gaps and full-description evaluation.
 
-Do not ask for a Resend API key in chat.
+## Confirm the deterministic scan profile
 
-## Confirm before writing
+The installer has drafted search rules from Career Ops. Show them in short groups and ask the user to correct:
 
-Show a plain-language summary of role families, exclusions, experience framing, location order, hard-language blockers, freshness behavior, and schedule. State that untimestamped roles may appear once as `newly_discovered`, never as provably recent.
+1. Role families, related titles and responsibility terms.
+2. Location groups and priority order.
+3. Languages that should block only when explicitly mandatory.
+4. Senior titles, manager-title treatment and people-management signals.
+5. Enabled direct feeds, ATS families and operating limits.
 
-After the user confirms:
+Do not ask the user to retype their CV or career story. Do not add unsupported experience. Keep `configured: false` until the user approves the displayed rules.
 
-1. Update only the extension's `config/profile.yml`.
-2. Set `configured: true`.
-3. Run `npm run doctor -- --career-ops-root ../..`.
-4. Run `npm test`.
-5. Run `npm run smoke`; it must send no email.
-6. Summarize source coverage and recommendations or rejection reasons.
+## Validate and deploy
 
-Only after those checks pass, offer the separate Resend and private GitHub Actions steps. Ask again before sending a test email or installing the workflow.
+Run the doctor, tests, smoke check and a live no-email structured scan. Explain source failures and zero results separately. Then guide GitHub browser sign-in, verify the repository is private and collect Resend values through `gh secret set`.
+
+Install the workflow only after confirmation. Run `guard-only`, then one deliberate `run`.
+
+If the user later chooses Smart, obtain explicit cloud privacy and cost consent, add only the selected provider credential and set `CAREER_OPS_AGENT_ENABLED=true`.

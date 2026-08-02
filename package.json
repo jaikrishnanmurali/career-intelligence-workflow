@@ -11,8 +11,12 @@
     "sync:career-ops": "node scripts/import-career-ops-profile.mjs",
     "workflow:install": "node scripts/install-workflow.mjs",
     "test": "node --test",
-    "scan": "node src/run.mjs",
-    "smoke": "node scripts/smoke.mjs"
+    "scan:structured": "node scripts/run-structured-scan.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "status": "node scripts/status.mjs",
+    "pause": "node scripts/lifecycle.mjs pause",
+    "resume": "node scripts/lifecycle.mjs resume",
+    "snooze": "node scripts/lifecycle.mjs snooze"
   },
   "engines": {
     "node": ">=22"
@@ -55,6 +59,7 @@
     "integrations/",
     "modes/",
     "reports/latest.example.json",
+    "schemas/",
     "scripts/",
     "src/",
     "state/state.example.json",

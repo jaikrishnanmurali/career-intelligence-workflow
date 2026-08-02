@@ -5,8 +5,8 @@
 config/profile.yml
 node_modules/
 preview/
-state/state.json
-reports/latest.json
-reports/archive/
+state/*
+!state/state.example.json
+reports/*
+!reports/latest.example.json
 *.log
-

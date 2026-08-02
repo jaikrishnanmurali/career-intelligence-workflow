@@ -1,109 +1,133 @@
-# Fictional starter used for tests and installation previews.
-# The installer creates a separate private draft from Career Ops.
-version: 1
+# Fictional example. Setup creates config/profile.yml inside the user's private
+# Career Ops repository and asks the user to confirm these search rules.
+version: 2
 configured: false
 
-career_ops:
-  source: ../../config/profile.yml
-  note: This public example contains no real candidate data.
-
-search:
+digest:
+  # discovery is the default: structured feeds and ATS endpoints, zero model tokens.
+  # smart adds an optional bounded Codex or Claude Code pass.
+  mode: discovery
+  provider: codex
   lookback_hours: 12
+  include_unscored: true
 
-  experience:
-    core_years: 3
-    total_years_including_adjacent: 6
-    behavior: caution
+schedule:
+  timezone: Europe/Stockholm
+  weekdays_only: false
+  minimum_gap_hours: 6
 
-  manager:
-    prefer_individual_contributor: true
-    title_penalty: 14
-    people_management_penalty: 24
-    low_fit_manager_floor: 64
+scanner:
+  direct_sources:
+    - platsbanken-jobstream
+    - arbeitnow
+    - thehub
+    - wttj
+    - jobicy
+    - himalayas
+    - remotive
+    - remoteok
+  ats_sources:
+    - greenhouse
+    - lever
+    - ashby
+    - workday
+  ats_boards_per_source: 120
+  max_scan_minutes: 4
+  max_page_verifications: 20
+  request_timeout_ms: 12000
+  search_queries:
+    - customer education
+    - partner enablement
+    - customer success operations
 
+# These are deterministic scan rules, not a replacement CV. Setup should derive
+# a first draft from Career Ops, then show it to the user for confirmation.
+search_profile:
   role_families:
-    - id: customer-success
-      label: Customer success
+    - id: customer-education
+      label: Customer education
       priority: 4
-      terms:
-        - customer success
+      title_terms:
+        - customer education
+        - learning specialist
+        - enablement specialist
+      responsibility_terms:
+        - learning programmes
         - customer onboarding
-        - client success
+        - training content
+    - id: partner-enablement
+      label: Partner enablement
+      priority: 3.5
+      title_terms:
+        - partner enablement
+        - partnerships specialist
+        - channel enablement
       responsibility_terms:
-        - onboarding
-        - adoption
-        - customer journey
-        - retention
+        - partner onboarding
+        - sales enablement
+        - partner programmes
 
-    - id: community-operations
-      label: Community operations
-      priority: 3.2
-      terms:
-        - community operations
-        - community specialist
-        - member operations
-      responsibility_terms:
-        - community programs
-        - member experience
-        - program delivery
-
+  title_context_terms:
+    - customer
+    - learning
+    - enablement
+    - partner
+    - operations
   title_excludes:
     - software engineer
     - data scientist
-    - chief executive officer
-
-  individual_contributor_title_signals:
+    - doctoral
+    - postdoctoral
+    - chief
+    - vice president
+    - director
+    - head of
+  ic_title_signals:
     - specialist
     - coordinator
+    - associate
     - analyst
+    - advisor
 
-  location:
-    home_group_id: ireland
-    groups:
-      - id: ireland
-        label: Ireland
-        score: 35
-        terms:
-          - ireland
-          - dublin
-          - cork
-      - id: europe-remote
-        label: Europe remote
-        score: 18
-        terms:
-          - europe
-          - european union
-          - emea
-          - remote
-    obvious_out_of_scope_phrases:
-      - united states only
-      - canada only
-    non_target_country_terms:
-      - united states
-      - canada
-      - australia
-    global_scope_signals:
-      - worldwide
-      - global
-      - europe
-      - emea
-      - remote
+  location_groups:
+    - id: home
+      label: Home market
+      score: 35
+      terms:
+        - example city
+        - example country
+    - id: europe-remote
+      label: Europe remote
+      score: 15
+      terms:
+        - europe
+        - european union
+        - emea
+        - remote
+  location_excludes:
+    - united states only
+    - canada only
+    - apac only
+  home_location_ids:
+    - home
 
-  # A language is blocked only when the posting states it as mandatory.
-  languages:
-    exclude_when_hard_required:
-      - german
-      - french
+  # List languages the user cannot meet when a vacancy makes them mandatory.
+  # A preferred or optional language is only a caution, not a blocker.
+  unsupported_languages:
+    - german
+    - french
+    - dutch
 
-discovery:
-  welcome_to_the_jungle_queries:
-    - customer success
-    - customer onboarding
-    - community operations
+  manager_title_penalty: 14
+  people_management_penalty: 24
+  ic_title_bonus: 10
+  priority_score: 88
+  worth_look_score: 64
 
-runtime:
-  timezone: UTC
-  request_timeout_ms: 12000
-  ats_boards_per_source: 400
-  max_scan_minutes: 18
-  max_page_verifications: 60
+budget:
+  max_agent_turns: 12
+  max_agent_minutes: 20
+  max_full_evaluations: 30
+
+health:
+  failure_warning_after: 2
