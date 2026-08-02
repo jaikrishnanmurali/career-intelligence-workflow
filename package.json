@@ -59,6 +59,7 @@
     "README.md",
     "ROADMAP.md",
     "SECURITY.md",
+    "THIRD_PARTY_NOTICES.md",
     "bin/",
     "config/profile.example.yml",
     "config/source-packs.example.yml",

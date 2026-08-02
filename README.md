@@ -24,6 +24,12 @@
   <img src="https://img.shields.io/badge/license-MIT-2F6FEB?style=flat" alt="MIT License">
 </p>
 
+<p align="center">
+  <strong>Independent community extension for <a href="https://github.com/santifer/career-ops">Career Ops</a>.</strong><br>
+  Career Ops was created by <a href="https://github.com/santifer">Santiago Fernández de Valderrama</a> and has been shaped by its <a href="https://github.com/santifer/career-ops/graphs/contributors">open-source contributors</a>.<br>
+  Career Intelligence Workflow is independently maintained and is not an official Career Ops project or endorsement.
+</p>
+
 <p align="center"><em>Created by Jai Krishnan Murali from a private Career Ops workflow developed for his own job search, then redesigned as a reusable open-source system with Codex assistance.</em></p>
 
 ---
@@ -329,6 +335,16 @@ No. It prepares a recommendation digest. You review the role and decide whether 
 
 </details>
 
+## Career Ops and upstream credit
+
+Career Intelligence Workflow would not exist without [Career Ops](https://github.com/santifer/career-ops). Santiago Fernández de Valderrama created the original system, and its open-source contributors have continued to develop its scanners, setup tools, agent integrations, documentation and application workflow.
+
+This extension relies on Career Ops for the candidate profile, CV context, portal configuration, official structured scanner, scan-history contract, shortlist and application workflow. Career Intelligence adds the unattended schedule, supplemental discovery, durable delivery state and private email digest around that foundation. It does not claim authorship of Career Ops or the upstream work it uses.
+
+Thank you to [Santiago](https://github.com/santifer) and the full [Career Ops contributor community](https://github.com/santifer/career-ops/graphs/contributors) for making the foundation available as open-source software. Career Intelligence is an independent project; it is not maintained, sponsored or endorsed by the Career Ops project or its maintainers.
+
+The upstream license and attribution are preserved in [Third-party notices](THIRD_PARTY_NOTICES.md). The Career Ops name and visual identity remain subject to its [trademark policy](https://github.com/santifer/career-ops/blob/main/TRADEMARK.md).
+
 ## About the project
 
 <p align="center">
@@ -357,5 +373,6 @@ This software is provided under the MIT License without warranty. It does not pr
 - [Privacy](docs/PRIVACY.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [Architecture](docs/architecture.md)
+- [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 MIT licensed. Maintained mainly by Jai Krishnan Murali.
