@@ -105,6 +105,7 @@ export const LOOKBACK_HOURS = numberInRange(
   168,
   'digest.lookback_hours',
 );
+export const ZERO_RESULTS_CONFIRMATION = digest.zero_results_confirmation === true;
 export const TIME_ZONE = String(schedule.timezone || 'UTC').trim() || 'UTC';
 export const WEEKDAYS_ONLY = schedule.weekdays_only === true;
 export const DELIVERY_TIMES = stringList(

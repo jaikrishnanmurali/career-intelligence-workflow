@@ -85,6 +85,9 @@ export function buildDigest(report) {
   const all = [...recommended, ...possible, ...other, ...manualReview];
   const coverage = coverageCopy(report);
   const funnel = funnelLine(report.sourceFunnel);
+  const confirmation = all.length === 0
+    ? 'The scan ran on schedule and found no new roles that survived your role, location, language and freshness filters this window. No action is needed.'
+    : '';
   const dateLabel = formatLocalTime(report.generatedAt);
   const modeLabel = report.mode === 'discovery' ? 'Discovery Digest' : 'Smart Digest';
   const subject = report.mode === 'discovery'
@@ -92,7 +95,9 @@ export function buildDigest(report) {
     : `${modeLabel}: ${all.length} new job${all.length === 1 ? '' : 's'}, ${recommended.length} recommended`;
   const text = [
     subject, dateLabel, '', `${coverage.label.toUpperCase()}: ${coverage.summary}`,
-    ...coverage.details.map((item) => `- ${item}`), '', report.scanSummary || '', '',
+    ...coverage.details.map((item) => `- ${item}`), '',
+    ...(confirmation ? ['SCHEDULED CONFIRMATION', confirmation, ''] : []),
+    report.scanSummary || '', '',
     ...(funnel ? ['SOURCE FUNNEL', funnel, ''] : []),
     textSection('RECOMMENDED', recommended, 'Recommended'), '',
     textSection('POSSIBLE MATCHES', possible, 'Possible'), '',
@@ -112,6 +117,7 @@ export function buildDigest(report) {
     <p style="margin:0;color:#0369a1;font-weight:700">CAREER OPS · ${escapeHtml(modeLabel)} · ${escapeHtml(dateLabel)}</p>
     <h1 style="margin:8px 0 10px">${all.length} new job${all.length === 1 ? '' : 's'}</h1>
     <div style="margin:18px 0;padding:15px;border-radius:9px;background:#fffbeb"><strong>${escapeHtml(coverage.label)}</strong><div>${escapeHtml(coverage.summary)}</div>${details}</div>
+    ${confirmation ? `<div style="margin:14px 0;padding:14px;border-radius:9px;background:#ecfdf5;color:#065f46"><strong>Scheduled confirmation.</strong> ${escapeHtml(confirmation)}</div>` : ''}
     ${funnel ? `<p style="margin:14px 0;padding:12px;border-radius:9px;background:#f8fafc;color:#334155;font-size:13px"><strong>Source funnel</strong><br>${escapeHtml(funnel).replaceAll('\n', '<br>')}</p>` : ''}
     <p style="color:#475569">${escapeHtml(report.scanSummary || '')}</p>
     ${htmlSection('Recommended', recommended, 'Recommended')}

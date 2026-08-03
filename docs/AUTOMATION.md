@@ -22,7 +22,7 @@ The installer adds three workflows. They share the `career-ops-state-writer` con
 8. On a clean runner, validate any model output and merge it with structured candidates.
 9. Build the exact Resend payload and save it to the state branch.
 10. If recommendations exist, send only that saved payload and save the receipt.
-11. If none exist, record `no-recommendations`, send nothing and close the slot.
+11. If none exist, record `no-recommendations` and close the slot. Send nothing unless `digest.zero_results_confirmation` is enabled, in which case send the short confirmation email.
 
 The gate has separate `should_run` and `agent_should_run` outputs. `CAREER_OPS_AGENT_ENABLED=false` prevents model work but never prevents structured discovery.
 

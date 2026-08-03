@@ -56,6 +56,24 @@ test('explains Discovery Digest reduced coverage with concrete examples', () => 
   assert.match(digest.text, /dynamic careers page/i);
 });
 
+test('renders a zero-result confirmation when nothing survived filtering', () => {
+  const digest = buildDigest({
+    ...smartReport,
+    mode: 'discovery',
+    recommended: [],
+    possible: [],
+    other: [],
+    manualReview: [],
+    coverage: { completeness: 'reduced' },
+    sourceFunnel: { arbeitnow: { fetched: 375, matched: 14, eligible: 7, recommended: 0 } },
+  });
+  assert.match(digest.subject, /0 new jobs/);
+  assert.match(digest.text, /SCHEDULED CONFIRMATION/i);
+  assert.match(digest.text, /scan ran on schedule/i);
+  assert.match(digest.html, /Scheduled confirmation/i);
+  assert.match(digest.text, /arbeitnow: 375 fetched, 14 matched, 7 eligible, 0 recommended/i);
+});
+
 test('keeps unresolved alert leads visible without calling them recommendations', () => {
   const digest = buildDigest({
     ...smartReport,

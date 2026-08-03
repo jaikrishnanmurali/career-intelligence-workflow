@@ -81,6 +81,7 @@ export function buildDeploymentDraft(careerOpsProfile) {
       provider: 'codex',
       lookback_hours: 12,
       include_unscored: true,
+      zero_results_confirmation: false,
     },
     schedule: {
       timezone,

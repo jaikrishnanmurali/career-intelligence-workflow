@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {
   DIGEST_MODE,
   FAILURE_WARNING_AFTER,
+  ZERO_RESULTS_CONFIRMATION,
 } from './config.mjs';
 import {
   jobIdentityKeys,
@@ -57,6 +58,17 @@ export function deliveryKeyFor(
     .replace(/[^a-z0-9._-]+/g, '-').slice(0, 80);
   if (!safeSlot) throw new Error('A stable slot id is required for delivery.');
   return `career-digest/${safeNamespace}/${safeSlot}`;
+}
+
+export function zeroResultsDeliveryDecision({ emailedCount, confirmZeroResults } = {}) {
+  const hasEmail = Number(emailedCount) > 0;
+  const sendConfirmation = !hasEmail && confirmZeroResults === true;
+  const deliverable = hasEmail || sendConfirmation;
+  return {
+    deliverable,
+    status: deliverable ? 'prepared' : 'no-recommendations',
+    sendConfirmation,
+  };
 }
 
 export function defaultState() {
@@ -273,8 +285,12 @@ export async function prepare({ slotId, generatedAt = new Date().toISOString() }
   });
   const digest = buildDigest(report);
   const payload = digestPayload(digest);
+  const decision = zeroResultsDeliveryDecision({
+    emailedCount: report.emailedCount,
+    confirmZeroResults: ZERO_RESULTS_CONFIRMATION,
+  });
   const outbox = {
-    status: report.emailedCount > 0 ? 'prepared' : 'no-recommendations',
+    status: decision.status,
     slotId,
     runId: context.runId,
     preparedAt: generatedAt,
@@ -288,7 +304,7 @@ export async function prepare({ slotId, generatedAt = new Date().toISOString() }
     ...state,
     sourceHealth,
     outbox: trimOutbox({ ...state.outbox, [slotId]: outbox }),
-    runs: report.emailedCount > 0 ? state.runs : [...state.runs, {
+    runs: decision.deliverable ? state.runs : [...state.runs, {
       at: generatedAt,
       slotId,
       runId: context.runId,

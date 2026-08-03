@@ -33,7 +33,7 @@ This repository is the scheduled discovery and email layer for Career Ops. Caree
 - Retrying a prepared slot must reuse that payload and stable idempotency key without rescanning.
 - A delivered slot cannot be forced to send again.
 - Treat every non-2xx Resend response, including 409, as an error unless an independently saved delivery receipt already exists.
-- A successful zero-result run sends no email, records `no-recommendations` and closes the logical slot so retries stop.
+- A successful zero-result run records `no-recommendations` and closes the logical slot so retries stop. By default it sends no email; when `digest.zero_results_confirmation` is enabled it sends a short confirmation email (with coverage and the source funnel) and then closes the slot.
 - Persist only the allowlisted Career Ops history and extension state files. Never push runtime state to the default branch.
 - Install alert-intake, digest and compatibility-watch workflows with one shared state-writer lock. Report upstream updates, but never auto-apply them to a live workspace.
 

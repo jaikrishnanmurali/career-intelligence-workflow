@@ -10,6 +10,10 @@ digest:
   provider: codex
   lookback_hours: 12
   include_unscored: true
+  # When true, a scheduled run that finds no recommendations still sends a short
+  # confirmation email (with coverage and the source funnel) so a silent window
+  # proves the scan ran. Default false preserves the silent zero-result behavior.
+  zero_results_confirmation: false
 
 schedule:
   timezone: Europe/Stockholm

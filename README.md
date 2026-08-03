@@ -150,7 +150,7 @@ On a normal run, Career Intelligence:
 7. saves the exact email payload before contacting Resend;
 8. sends only when at least one new recommendation survives.
 
-A run with no recommendations is still a successful run. It records the result, sends no empty email and stops the remaining retries for that slot.
+A run with no recommendations is still a successful run. By default it records the result, sends no empty email and stops the remaining retries for that slot. You can optionally enable a short confirmation email so a silent window still proves the scan ran.
 
 If delivery fails after the message is prepared, the next attempt reuses the saved message instead of scanning again. Every attempt uses the same repository-scoped delivery key, and a delivered slot cannot be forced to send twice.
 
