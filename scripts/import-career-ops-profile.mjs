@@ -97,9 +97,9 @@ export function buildDeploymentDraft(careerOpsProfile) {
     scanner: {
       direct_sources: ['platsbanken-jobstream', 'arbeitnow', 'thehub', 'wttj', 'jobicy', 'himalayas', 'remotive', 'remoteok'],
       ats_sources: ['greenhouse', 'lever', 'ashby', 'workday'],
-      ats_boards_per_source: 120,
-      max_scan_minutes: 4,
-      max_page_verifications: 20,
+      ats_boards_per_source: 250,
+      max_scan_minutes: 7,
+      max_page_verifications: 30,
       request_timeout_ms: 12000,
       search_queries: roleFamilies.flatMap((family) => family.title_terms).slice(0, 20),
     },
@@ -107,7 +107,9 @@ export function buildDeploymentDraft(careerOpsProfile) {
       role_families: roleFamilies,
       title_context_terms: [...new Set(roleFamilies.flatMap((family) => family.title_terms)
         .flatMap((term) => term.toLowerCase().split(/[^a-z0-9]+/)).filter((term) => term.length > 3))],
-      title_excludes: ['software engineer', 'data scientist', 'doctoral', 'postdoctoral', 'chief', 'vice president', 'director', 'head of'],
+      // Neutral by default: no role function is excluded automatically. Onboarding
+      // asks the user what they are not targeting and adds terms here.
+      title_excludes: [],
       ic_title_signals: ['specialist', 'coordinator', 'associate', 'analyst', 'consultant', 'advisor'],
       location_groups: locationGroups,
       location_excludes: ['united states only', 'canada only', 'india only', 'apac only'],

@@ -72,6 +72,7 @@ Generate the deterministic scan profile from Career Ops, then show it in small, 
 - preferred locations in order;
 - languages that block only when the listing explicitly makes them mandatory;
 - seniority, manager-title, and people-management treatment;
+- titles and functions to exclude (`title_excludes`), drafted empty and added only from the user's own "not what I am targeting" answers — no role function (for example HR, recruiting, early-career, engineering, academic or leadership) is excluded by default, because the same tool may serve someone targeting that function;
 - direct feeds, ATS families, and the limits of each discovery lane.
 
 Next, generate `config/sources.yml` from the included regional source packs. Select platforms from the user's actual target locations rather than enabling every regional board. The default global pack contains LinkedIn, Indeed, Glassdoor, Climatebase and Wellfound; Sweden adds Jobbsafari, the Netherlands adds IamExpat, and Austria adds karriere.at.
