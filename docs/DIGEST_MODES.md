@@ -55,6 +55,12 @@ Candidates outside the evaluation budget are emailed as unscored. A model score 
 
 Smart improves coverage but does not recreate a person's signed-in browser. LinkedIn can expose a search result while blocking the full description, and some sites will reject GitHub-hosted traffic. The receipt must show that limitation.
 
+## Zero-result confirmation
+
+By default, a scheduled run that finds no new recommendations sends no email and closes the slot. That keeps an empty inbox honest: silence means the scan ran and found nothing, not that it failed.
+
+Some people prefer proof that the scan ran even when there is nothing new. Set `digest.zero_results_confirmation: true` to send a short confirmation email on those windows instead. It carries the same reduced-coverage note and the per-source funnel (for example `arbeitnow: 375 fetched, 14 matched, 7 eligible, 0 recommended`) so you can see why nothing survived filtering. The slot is still terminal — it is delivered once and never re-sent.
+
 ## Freshness language
 
 - **Verified fresh** means the source supplied an exact timestamp inside the configured window.

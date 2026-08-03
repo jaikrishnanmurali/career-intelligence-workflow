@@ -105,6 +105,7 @@ export const LOOKBACK_HOURS = numberInRange(
   168,
   'digest.lookback_hours',
 );
+export const ZERO_RESULTS_CONFIRMATION = digest.zero_results_confirmation === true;
 export const TIME_ZONE = String(schedule.timezone || 'UTC').trim() || 'UTC';
 export const WEEKDAYS_ONLY = schedule.weekdays_only === true;
 export const DELIVERY_TIMES = stringList(
@@ -185,21 +186,21 @@ export const REQUEST_TIMEOUT_MS = numberInRange(
 );
 export const DEFAULT_ATS_BOARDS_PER_SOURCE = numberInRange(
   scanner.ats_boards_per_source,
-  120,
+  250,
   25,
   2_000,
   'scanner.ats_boards_per_source',
 );
 export const DEFAULT_MAX_SCAN_MINUTES = numberInRange(
   scanner.max_scan_minutes,
-  4,
+  7,
   2,
   60,
   'scanner.max_scan_minutes',
 );
 export const DEFAULT_MAX_PAGE_VERIFICATIONS = numberInRange(
   scanner.max_page_verifications,
-  20,
+  30,
   1,
   500,
   'scanner.max_page_verifications',
