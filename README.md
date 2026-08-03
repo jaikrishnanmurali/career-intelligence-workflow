@@ -36,6 +36,29 @@
 
 Career Intelligence runs in GitHub Actions, remembers what it has already seen, and emails only new jobs that survive your role, location, language, seniority and work-authorization rules.
 
+## What it does, in plain terms
+
+Career Intelligence watches job boards and employer career pages on a schedule — even while your computer is off — keeps only the listings that match your roles, locations and languages, and emails you the new ones twice a day. It **does not apply for you** and never contacts employers. Think of it as a private, always-on job radar that sends a short email digest.
+
+**How it works, simply:**
+
+1. **Set it up once** — your CV, target roles, locations, and an email address.
+2. **It scans on a schedule** — public job feeds, employer hiring systems, and any job alerts you choose to connect.
+3. **You get an email** — only new roles that fit. A morning with no matches stays silent (you can opt into a short confirmation email so silence always means "nothing new," not "it broke").
+
+It finds and recommends jobs. It does not apply, contact employers, tailor your CV or replace Career Ops.
+
+### Get help setting up
+
+You do not need to read this whole page. Pick one way in — **only two accounts are required to start: GitHub and a free Resend account.** Everything else is optional and can be added later.
+
+- **🧭 Guided Browser Setup — recommended, no coding.** Opens a private GitHub Codespace and walks you through eight short stages; the technical work happens behind the page.
+  <a href="https://codespaces.new/jaikrishnanmurali/career-intelligence-workflow?quickstart=1&amp;devcontainer_path=.devcontainer%2Fdevcontainer.json"><img src="https://img.shields.io/badge/Open_Guided_Browser_Setup-17231F?style=for-the-badge&amp;logo=github&amp;logoColor=A7F36B" alt="Open Guided Browser Setup"></a>
+- **💬 Let ChatGPT or Claude walk you through it.** Paste [this guide prompt](docs/FIRST_PROMPT.md) (**not** the README) into your chat and it will guide you one question at a time — including pointing you to the Browser Setup above.
+- **⚙️ I already use Codex or Claude Code.** Install from the Career Ops root; see [the agent route below](#i-already-use-codex-or-claude-code).
+
+Brand new to all of it? [**Start here**](docs/START_HERE.md) for the plain-language version and a checklist of exactly what you need.
+
 ## Why I built it
 
 I wanted Career Ops to keep searching after I closed the local session. The first version ran every twelve hours and emailed fresh jobs, but an audit exposed a serious problem: the cloud rewrite had drifted away from the Career Ops scanner and replaced parts of it with a smaller custom search. That made the automation cheaper, but also easier to miss useful roles.
