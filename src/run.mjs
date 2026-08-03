@@ -236,6 +236,7 @@ function reportFrom({ context, candidatePayload, coverage, evaluations, sourceHe
     discoveredCount: merged.length,
     emailedCount: recommended.length + possible.length + other.length + manualReview.length,
     evaluationWarning: evaluations.warning,
+    sourceFunnel: candidatePayload.sourceFunnel || {},
   };
 }
 

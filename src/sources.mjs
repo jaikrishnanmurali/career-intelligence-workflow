@@ -52,7 +52,10 @@ async function arbeitnow() {
         location: [item.location, item.remote ? 'Remote' : ''].filter(Boolean).join(', '),
         description: item.description,
         postedAt: epoch(item.created_at),
-        postedAtEvidence: 'Arbeitnow created_at timestamp',
+        // Arbeitnow aggregates from ATS systems; created_at is its ingestion
+        // time, not a confirmed employer publication time. Treat as likely.
+        postingPrecision: 'relative',
+        postedAtEvidence: 'Arbeitnow aggregator created_at; original employer publication time not confirmed.',
         source: 'arbeitnow',
       });
       if (normalized) jobs.push(normalized);
@@ -350,25 +353,39 @@ async function fetchWorkday(key, now) {
     return [];
   }
   const origin = `https://${tenant}.${instance}.myworkdayjobs.com`;
-  const json = await fetchJson(`${origin}/wday/cxs/${tenant}/${site}/jobs`, {
-    method: 'POST',
-    timeoutMs: 12_000,
-    headers: {
-      'content-type': 'application/json',
-      origin,
-      referer: `${origin}/${site}`,
-    },
-    body: JSON.stringify({
-      appliedFacets: {},
-      limit: 100,
-      offset: 0,
-      searchText: '',
-    }),
-  });
-  return (Array.isArray(json?.jobPostings) ? json.jobPostings : [])
-    .map((item) => {
+  // Workday rejects page sizes larger than 20. Page through them so a board is
+  // still covered to roughly the original single-request intent.
+  const pageSize = 20;
+  const maxPages = 5;
+  const jobs = [];
+  for (let page = 0; page < maxPages; page += 1) {
+    let json;
+    try {
+      json = await fetchJson(`${origin}/wday/cxs/${tenant}/${site}/jobs`, {
+        method: 'POST',
+        timeoutMs: 12_000,
+        headers: {
+          'content-type': 'application/json',
+          origin,
+          referer: `${origin}/${site}`,
+        },
+        body: JSON.stringify({
+          appliedFacets: {},
+          limit: pageSize,
+          offset: page * pageSize,
+          searchText: '',
+        }),
+      });
+    } catch (error) {
+      // A first-page failure means the board is genuinely broken; surface it so
+      // the coverage receipt records a failure instead of hiding it as empty.
+      if (page === 0) throw error;
+      break;
+    }
+    const postings = Array.isArray(json?.jobPostings) ? json.jobPostings : [];
+    for (const item of postings) {
       const freshness = workdayDate(item.postedOn, now);
-      return job({
+      const normalized = job({
         title: item.title,
         url: item.externalPath ? `${origin}/${site}${item.externalPath}` : '',
         company: tenant,
@@ -379,8 +396,11 @@ async function fetchWorkday(key, now) {
         source: 'workday',
         boardKey: key,
       });
-    })
-    .filter(Boolean);
+      if (normalized) jobs.push(normalized);
+    }
+    if (postings.length < pageSize) break;
+  }
+  return jobs;
 }
 
 const ATS_FETCHERS = {

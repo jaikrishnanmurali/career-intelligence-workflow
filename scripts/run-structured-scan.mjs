@@ -268,6 +268,26 @@ const verified = await verifyCandidates(shortlist.candidates);
 const recommendations = verified.recommendations.map(recommendationRecord);
 const candidates = recommendations.map(candidateFor);
 const evaluateNow = EFFECTIVE_MODE === 'smart' ? candidates.slice(0, MAX_FULL_EVALUATIONS) : [];
+const sourceFunnel = {};
+for (const [key, counts] of Object.entries(shortlist.funnel || {})) {
+  sourceFunnel[key] = { ...counts };
+}
+// "fetched" is the raw count collected per source before cross-source dedup,
+// so a source's volume is reported honestly even when listings overlap.
+const collectedBySource = {};
+for (const item of scan.jobs) {
+  const key = String(item.source || 'unknown');
+  collectedBySource[key] = (collectedBySource[key] || 0) + 1;
+}
+for (const [key, rawCount] of Object.entries(collectedBySource)) {
+  sourceFunnel[key] = sourceFunnel[key] || { fetched: 0, matched: 0, eligible: 0, recommended: 0 };
+  sourceFunnel[key].fetched = rawCount;
+}
+for (const role of recommendations) {
+  const key = String(role.source || 'unknown');
+  sourceFunnel[key] = sourceFunnel[key] || { fetched: 0, matched: 0, eligible: 0, recommended: 0 };
+  sourceFunnel[key].recommended += 1;
+}
 const nextState = updateScannerState(
   state,
   scan,
@@ -297,6 +317,7 @@ await atomicWriteJson(path.join(STATE_ROOT, 'candidates.json'), {
   evaluateNow,
   awaitingEvaluation: EFFECTIVE_MODE === 'smart' ? candidates.slice(MAX_FULL_EVALUATIONS) : candidates,
   manualReview,
+  sourceFunnel,
 });
 await atomicWriteJson(path.join(STATE_ROOT, 'run-context.json'), {
   schemaVersion: 1,

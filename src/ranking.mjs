@@ -237,12 +237,23 @@ function whyText(candidate) {
   return `${candidate.family.family.label} match in ${candidate.locationMatch.group.label}.${detail}`;
 }
 
+function emptyFunnel() {
+  return { fetched: 0, matched: 0, eligible: 0, recommended: 0 };
+}
+
+function bumpFunnel(funnel, source, stage) {
+  const key = String(source || 'unknown');
+  if (!funnel[key]) funnel[key] = emptyFunnel();
+  funnel[key][stage] += 1;
+}
+
 export function shortlistCandidates(jobs, state, scanStartedAt) {
   const priorSeenUrls = new Set(
     Object.keys(state.seenUrls || {}).map(canonicalUrl).filter(Boolean),
   );
   const priorPostingKeys = new Set(Object.keys(state.seenPostingKeys || {}));
   const rejected = [];
+  const funnel = {};
   const byUrl = new Map();
 
   for (const raw of jobs) {
@@ -266,6 +277,7 @@ export function shortlistCandidates(jobs, state, scanStartedAt) {
 
   const candidates = [];
   for (const job of byPosting.values()) {
+    bumpFunnel(funnel, job.source, 'fetched');
     const postingKey = postingIdentity(job);
     if (postingKey && priorPostingKeys.has(postingKey)) {
       rejected.push({ ...job, reason: 'Duplicate company, title and location identity.' });
@@ -277,6 +289,7 @@ export function shortlistCandidates(jobs, state, scanStartedAt) {
     }
     const family = familyFor(job);
     if (!family) continue;
+    bumpFunnel(funnel, job.source, 'matched');
     const location = locationFor(job.location);
     if (!location.eligible) {
       rejected.push({ ...job, reason: location.reason });
@@ -302,6 +315,7 @@ export function shortlistCandidates(jobs, state, scanStartedAt) {
       rejected.push({ ...job, reason: 'Manager-titled role did not clear the stronger individual-contributor fit threshold.' });
       continue;
     }
+    bumpFunnel(funnel, job.source, 'eligible');
     candidates.push({
       ...job,
       ...freshness,
@@ -317,7 +331,7 @@ export function shortlistCandidates(jobs, state, scanStartedAt) {
     || b.freshnessRank - a.freshnessRank
     || a.company.localeCompare(b.company)
   ));
-  return { candidates, rejected, priorSeenUrls };
+  return { candidates, rejected, priorSeenUrls, funnel };
 }
 
 const EXPIRED_SIGNALS = [

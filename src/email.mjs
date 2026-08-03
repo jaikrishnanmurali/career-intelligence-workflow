@@ -67,6 +67,16 @@ function htmlSection(title, roles, label) {
   return `<h2 style="margin:26px 0 12px;font-size:19px">${escapeHtml(title)}</h2><ol style="padding-left:22px">${items}</ol>`;
 }
 
+function funnelLine(sourceFunnel) {
+  const entries = Object.entries(sourceFunnel || {})
+    .map(([source, counts]) => ({ source, ...counts }))
+    .filter((entry) => Number(entry.fetched) > 0)
+    .sort((a, b) => (Number(b.recommended) || 0) - (Number(a.recommended) || 0)
+      || (Number(b.fetched) || 0) - (Number(a.fetched) || 0));
+  if (!entries.length) return '';
+  return entries.map((entry) => `${entry.source}: ${entry.fetched} fetched, ${entry.matched || 0} matched, ${entry.eligible || 0} eligible, ${entry.recommended || 0} recommended`).join('\n');
+}
+
 export function buildDigest(report) {
   const recommended = asList(report.recommended || report.recommendations);
   const possible = asList(report.possible);
@@ -74,6 +84,7 @@ export function buildDigest(report) {
   const manualReview = asList(report.manualReview);
   const all = [...recommended, ...possible, ...other, ...manualReview];
   const coverage = coverageCopy(report);
+  const funnel = funnelLine(report.sourceFunnel);
   const dateLabel = formatLocalTime(report.generatedAt);
   const modeLabel = report.mode === 'discovery' ? 'Discovery Digest' : 'Smart Digest';
   const subject = report.mode === 'discovery'
@@ -82,6 +93,7 @@ export function buildDigest(report) {
   const text = [
     subject, dateLabel, '', `${coverage.label.toUpperCase()}: ${coverage.summary}`,
     ...coverage.details.map((item) => `- ${item}`), '', report.scanSummary || '', '',
+    ...(funnel ? ['SOURCE FUNNEL', funnel, ''] : []),
     textSection('RECOMMENDED', recommended, 'Recommended'), '',
     textSection('POSSIBLE MATCHES', possible, 'Possible'), '',
     textSection('OTHER NEW OR UNSCORED JOBS', other, 'Other'), '',
@@ -100,6 +112,7 @@ export function buildDigest(report) {
     <p style="margin:0;color:#0369a1;font-weight:700">CAREER OPS · ${escapeHtml(modeLabel)} · ${escapeHtml(dateLabel)}</p>
     <h1 style="margin:8px 0 10px">${all.length} new job${all.length === 1 ? '' : 's'}</h1>
     <div style="margin:18px 0;padding:15px;border-radius:9px;background:#fffbeb"><strong>${escapeHtml(coverage.label)}</strong><div>${escapeHtml(coverage.summary)}</div>${details}</div>
+    ${funnel ? `<p style="margin:14px 0;padding:12px;border-radius:9px;background:#f8fafc;color:#334155;font-size:13px"><strong>Source funnel</strong><br>${escapeHtml(funnel).replaceAll('\n', '<br>')}</p>` : ''}
     <p style="color:#475569">${escapeHtml(report.scanSummary || '')}</p>
     ${htmlSection('Recommended', recommended, 'Recommended')}
     ${htmlSection('Possible matches', possible, 'Possible')}
