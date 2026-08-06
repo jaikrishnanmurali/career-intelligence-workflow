@@ -18,8 +18,11 @@ import {
   applyBrowserSourcePlan,
   browserSetupPreview,
   containsSecret,
+  maskRecipient,
+  mutationOriginAllowed,
   payloadFingerprint,
   redactSecrets,
+  upstreamRemoteOps,
   SUPPORTED_CAREER_OPS_TAG,
   validateBrowserSetupInput,
   writeBrowserProfileFiles,
@@ -158,9 +161,7 @@ async function requestBody(request) {
 
 function assertMutationRequest(request) {
   if (request.headers['x-setup-token'] !== SESSION_TOKEN) throw new Error('This setup session has expired. Refresh the page.');
-  const origin = request.headers.origin;
-  const host = request.headers.host;
-  if (origin && new URL(origin).host !== host) throw new Error('Cross-origin setup requests are not allowed.');
+  if (!mutationOriginAllowed(request.headers.origin, request.headers.host)) throw new Error('Cross-origin setup requests are not allowed.');
 }
 
 async function environmentStatus() {
@@ -303,8 +304,8 @@ async function publishPrivateWorkspace(raw) {
   if (auth.code !== 0) throw new Error('GitHub is not connected yet. Use the browser sign-in first.');
   const identity = await githubIdentity();
   const remotes = await remoteInfo(workspace);
-  if (/^origin\s+/m.test(remotes) && /santifer\/career-ops(?:\.git)?/i.test(remotes)) {
-    await run('git', ['remote', 'rename', 'origin', 'career-ops-upstream'], { cwd: workspace });
+  for (const args of upstreamRemoteOps(remotes)) {
+    await run('git', args, { cwd: workspace });
   }
   await run('git', ['config', 'user.name', identity.login], { cwd: workspace });
   await run('git', ['config', 'user.email', `${identity.id}+${identity.login}@users.noreply.github.com`], { cwd: workspace });
@@ -334,6 +335,9 @@ async function publishPrivateWorkspace(raw) {
     }
     await run('git', ['push', '-u', 'origin', 'HEAD'], { cwd: workspace });
   } else {
+    if (/^origin\s+/m.test(await remoteInfo(workspace))) {
+      await run('git', ['remote', 'remove', 'origin'], { cwd: workspace });
+    }
     const created = await run('gh', ['repo', 'create', repoName, '--private', '--source', workspace, '--remote', 'origin', '--push']);
     const urlMatch = created.stdout.match(/https:\/\/github\.com\/[^\s]+/);
     repository = {
@@ -399,7 +403,7 @@ async function configureResend(raw) {
     }
     test = { sent: true, accepted: true };
   }
-  return { status: 'email-configured', recipient: to.replace(/^(.{2}).*(@.*)$/, '$1***$2'), test };
+  return { status: 'email-configured', recipient: maskRecipient(to), test };
 }
 
 async function listWorkflowRuns(repository) {

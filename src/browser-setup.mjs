@@ -317,6 +317,60 @@ export function redactSecrets(value) {
   return output;
 }
 
+/**
+ * Reconcile the upstream Career Ops git remote so the private deployment can
+ * claim the `origin` name. A fresh Career Ops clone ships `origin` pointing at
+ * santifer/career-ops; that upstream pointer is moved to `career-ops-upstream`.
+ *
+ * Returns the ordered `git` argument lists to run against the workspace. It is
+ * idempotent across retries: when `origin` still points upstream but a previous
+ * failed publish already left a `career-ops-upstream` behind, that stale remote
+ * is removed before the rename so the retry no longer fails with
+ * "remote career-ops-upstream already exists". When `origin` is already gone or
+ * no longer points upstream (e.g. the private repo already claimed it), nothing
+ * is returned and the upstream pointer is left untouched.
+ */
+export function upstreamRemoteOps(remotes) {
+  const text = String(remotes ?? '');
+  const originLine = (/^origin\s+.+$/m.exec(text) || [''])[0];
+  if (!/santifer\/career-ops(?:\.git)?/i.test(originLine)) return [];
+  const ops = [];
+  if (/^career-ops-upstream\s+/m.test(text)) {
+    ops.push(['remote', 'remove', 'career-ops-upstream']);
+  }
+  ops.push(['remote', 'rename', 'origin', 'career-ops-upstream']);
+  return ops;
+}
+
+/**
+ * Mask an email recipient for display. Always hides most of the local part,
+ * including for unusually short local parts (the previous bare regex returned
+ * them unchanged, leaking the full address in the response).
+ */
+export function maskRecipient(value) {
+  const email = String(value ?? '').trim();
+  const match = email.match(/^([^\s@]+)@([^\s@]+)$/);
+  if (!match) return '';
+  const [, local, domain] = match;
+  const shown = local.slice(0, local.length >= 3 ? 2 : 1);
+  return `${shown}***@${domain}`;
+}
+
+/**
+ * Accept same-origin mutation requests only. An absent or unparseable Origin,
+ * or a host that does not match the request host, are all rejected so the setup
+ * API cannot be driven cross-origin. The session token still gates every
+ * mutation independently.
+ */
+export function mutationOriginAllowed(originHeader, host) {
+  if (!originHeader || !host) return false;
+  try {
+    return new URL(originHeader).host === host;
+  } catch {
+    return false;
+  }
+}
+
 export function payloadFingerprint(input) {
   const safe = { ...input, cvText: `[sha256:${createHash('sha256').update(input.cvText).digest('hex')}]` };
   return createHash('sha256').update(JSON.stringify(safe)).digest('hex');

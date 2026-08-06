@@ -210,7 +210,7 @@ async function prepareWorkspace() {
   if (!validateStage(4)) return;
   const button = document.querySelector('#prepare-workspace');
   button.disabled = true;
-  setOperationStatus(status, 'Preparing Career Ops, your search map and the cloud workflows. This can take several minutes…');
+  setOperationStatus(status, 'Preparing Career Ops, your search map and the cloud workflows. This can take several minutes…', 'loading');
   try {
     await buildReview();
     const result = await api('/api/setup/prepare', { method: 'POST', body: setupPayload() });
@@ -267,7 +267,7 @@ async function publishWorkspace() {
   if (!workspacePrepared) { setOperationStatus(output, 'Prepare the workspace first.', 'error'); return; }
   const button = document.querySelector('#publish-workspace');
   button.disabled = true;
-  setOperationStatus(output, 'Creating and verifying the private repository…');
+  setOperationStatus(output, 'Creating and verifying the private repository…', 'loading');
   try {
     const result = await api('/api/github/publish', { method: 'POST', body: { repoName: form.elements.repoName.value } });
     privatePublished = true;
@@ -290,7 +290,7 @@ async function configureEmail() {
   if (![key, from, to].every((field) => field.reportValidity())) return;
   const button = document.querySelector('#configure-email');
   button.disabled = true;
-  setOperationStatus(status, 'Passing the values directly to GitHub Secrets…');
+  setOperationStatus(status, 'Passing the values directly to GitHub Secrets…', 'loading');
   try {
     const result = await api('/api/resend/configure', {
       method: 'POST',
@@ -324,7 +324,14 @@ function renderCompletedCheck(mode) {
 
 async function monitorWorkflow(mode, statusElement) {
   const button = checkButton(mode);
+  const deadline = Date.now() + 15 * 60_000;
   for (;;) {
+    if (Date.now() > deadline) {
+      if (button) button.disabled = false;
+      statusElement.textContent = `${mode} was still queued or running after 15 minutes. Check the run on GitHub, then retry if it did not finish.`;
+      statusElement.className = 'operation-status is-error';
+      return;
+    }
     const result = await api('/api/workflow/status', { method: 'POST', body: { mode } });
     const link = result.actionsUrl
       ? ` <a href="${escapeHtml(result.actionsUrl)}" target="_blank" rel="noreferrer">View on GitHub ↗</a>` : '';
@@ -354,7 +361,7 @@ async function triggerWorkflow(mode, statusElement = document.querySelector('#wo
   }
   const button = checkButton(mode);
   if (button) button.disabled = true;
-  setOperationStatus(statusElement, `Starting the ${mode} workflow…`);
+  setOperationStatus(statusElement, `Starting the ${mode} workflow…`, 'loading');
   try {
     const result = await api('/api/workflow/run', { method: 'POST', body: { mode } });
     if (mode === 'run') {
@@ -376,7 +383,7 @@ async function activateSchedule() {
     setOperationStatus(status, 'Complete both cloud checks before activating scheduled delivery.', 'error');
     return;
   }
-  setOperationStatus(status, 'Enabling the private morning and evening schedule…');
+  setOperationStatus(status, 'Enabling the private morning and evening schedule…', 'loading');
   try {
     await api('/api/workflow/activate', { method: 'POST', body: {} });
     scheduleActive = true;
@@ -427,9 +434,9 @@ backButton.addEventListener('click', () => setStage(currentStage - 1));
 progressItems.forEach((item) => item.querySelector('button').addEventListener('click', () => setStage(Number(item.querySelector('button').dataset.jump))));
 
 async function boot() {
-  const session = await api('/api/session');
+  const session = await apiWithRetry('/api/session');
   sessionToken = session.token;
-  const status = await api('/api/status');
+  const status = await apiWithRetry('/api/status');
   workspacePrepared = status.workspacePrepared;
   privatePublished = status.repositoryPublished;
   emailConfigured = status.emailConfigured;
@@ -451,4 +458,37 @@ async function boot() {
   setStage(scheduleActive ? 7 : emailConfigured ? 6 : privatePublished ? 5 : workspacePrepared ? 4 : 0);
 }
 
-boot().catch((error) => setGlobal(error.message));
+async function apiWithRetry(path, { attempts = 8, delayMs = 1500 } = {}) {
+  let lastError;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await api(path);
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => window.setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError;
+}
+
+function showBootRetry(message) {
+  setGlobal(message);
+  const retry = document.querySelector('#boot-retry');
+  if (!retry) return;
+  retry.hidden = false;
+  retry.onclick = () => {
+    retry.hidden = true;
+    setGlobal('Reconnecting to the setup service…');
+    startBoot();
+  };
+}
+
+async function startBoot() {
+  try {
+    await boot();
+  } catch (error) {
+    showBootRetry('The setup service could not be reached. It may still be starting — try again in a moment.');
+  }
+}
+
+startBoot();

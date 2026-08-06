@@ -9,8 +9,11 @@ import {
   buildCareerOpsProfile,
   containsSecret,
   deliveryAttempts,
+  maskRecipient,
+  mutationOriginAllowed,
   redactSecrets,
   SUPPORTED_CAREER_OPS_TAG,
+  upstreamRemoteOps,
   validateBrowserSetupInput,
 } from '../src/browser-setup.mjs';
 
@@ -100,6 +103,81 @@ test('browser setup secret checks detect and redact credential-shaped values', (
   const redacted = redactSecrets(value);
   assert.doesNotMatch(redacted, /re_[a-z]{20}/i);
   assert.doesNotMatch(redacted, /ghp_[a-z]{20}/i);
+});
+
+test('upstream remote reconciliation is idempotent across failed-publish retries', () => {
+  const santiferOrigin = [
+    'origin\thttps://github.com/santifer/career-ops.git (fetch)',
+    'origin\thttps://github.com/santifer/career-ops.git (push)',
+  ].join('\n');
+  // Fresh clone: origin points upstream, no leftover remote -> just the rename.
+  assert.deepEqual(upstreamRemoteOps(santiferOrigin), [
+    ['remote', 'rename', 'origin', 'career-ops-upstream'],
+  ]);
+  // The reported failure: a previous publish already renamed origin into
+  // career-ops-upstream and then failed, but a fresh prepare recreated origin.
+  // Both now coexist, which today makes `git remote rename` abort. The helper
+  // clears the stale upstream name first so the retry succeeds.
+  const withStaleUpstream = [
+    santiferOrigin,
+    'career-ops-upstream\thttps://github.com/santifer/career-ops.git (fetch)',
+    'career-ops-upstream\thttps://github.com/santifer/career-ops.git (push)',
+  ].join('\n');
+  assert.deepEqual(upstreamRemoteOps(withStaleUpstream), [
+    ['remote', 'remove', 'career-ops-upstream'],
+    ['remote', 'rename', 'origin', 'career-ops-upstream'],
+  ]);
+  // Already reconciled: origin is gone and upstream is already named. The
+  // upstream pointer must be preserved, not deleted.
+  const reconciled = [
+    'career-ops-upstream\thttps://github.com/santifer/career-ops.git (fetch)',
+    'career-ops-upstream\thttps://github.com/santifer/career-ops.git (push)',
+  ].join('\n');
+  assert.deepEqual(upstreamRemoteOps(reconciled), []);
+  // Private repo already claimed origin: nothing to reconcile.
+  const privateOrigin = [
+    'origin\thttps://github.com/morgan/career-ops-private.git (fetch)',
+    'origin\thttps://github.com/morgan/career-ops-private.git (push)',
+  ].join('\n');
+  assert.deepEqual(upstreamRemoteOps(privateOrigin), []);
+  assert.deepEqual(upstreamRemoteOps(''), []);
+});
+
+test('recipient masking hides the local part even for unusually short addresses', () => {
+  assert.equal(maskRecipient('morgan@example.com'), 'mo***@example.com');
+  assert.equal(maskRecipient('a@b.co'), 'a***@b.co'); // previously leaked in full
+  assert.equal(maskRecipient('ab@b.co'), 'a***@b.co');
+  assert.equal(maskRecipient('not-an-email'), '');
+  assert.equal(maskRecipient(''), '');
+});
+
+test('mutation origin check rejects absent, mismatched and malformed origins', () => {
+  assert.equal(mutationOriginAllowed('https://setup.codespace.dev', 'setup.codespace.dev'), true);
+  assert.equal(mutationOriginAllowed(undefined, 'setup.codespace.dev'), false); // absent -> reject (previously allowed)
+  assert.equal(mutationOriginAllowed('https://evil.example', 'setup.codespace.dev'), false);
+  assert.equal(mutationOriginAllowed('not-a-url', 'setup.codespace.dev'), false);
+  assert.equal(mutationOriginAllowed('https://setup.codespace.dev', undefined), false);
+});
+
+test('browser setup hardens cross-origin mutations, masks recipients and frees the origin remote', async () => {
+  const server = await readFile(new URL('../browser-setup/server.mjs', import.meta.url), 'utf8');
+  assert.match(server, /mutationOriginAllowed\(request\.headers\.origin, request\.headers\.host\)/);
+  assert.match(server, /maskRecipient\(to\)/);
+  // the old "if (origin && ...)" implicit-allow must be gone
+  assert.doesNotMatch(server, /if \(origin && new URL\(origin\)\.host !== host\)/);
+  // a stale `origin` is cleared before `gh repo create` claims the name
+  assert.match(server, /'remote', 'remove', 'origin'/);
+});
+
+test('browser setup recovers from a slow-starting service and bounds workflow polling', async () => {
+  const app = await readFile(new URL('../browser-setup/app.js', import.meta.url), 'utf8');
+  const html = await readFile(new URL('../browser-setup/index.html', import.meta.url), 'utf8');
+  assert.match(app, /apiWithRetry/);
+  assert.match(app, /startBoot\(\)/);
+  assert.match(app, /showBootRetry/);
+  assert.match(html, /id="boot-retry"/);
+  // a stalled GitHub run must not lock the check button forever
+  assert.match(app, /15 \* 60_000/);
 });
 
 test('browser assets expose eight stages and a private Codespaces port', async () => {
